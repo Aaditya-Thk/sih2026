@@ -10,6 +10,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.33.0",
     "react": "^19.2.8",
@@ -25,5 +28,18 @@
     "oxlint": "^1.78.0",
     "typescript": "~6.0.2",
     "vite": "^8.2.1"
-  }
+  },
+  "description": "This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Aaditya-Thk/sih2026.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Aaditya-Thk/sih2026/issues"
+  },
+  "homepage": "https://github.com/Aaditya-Thk/sih2026#readme"
 }

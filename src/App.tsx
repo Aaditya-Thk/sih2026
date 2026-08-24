@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import {
   Activity,
@@ -351,15 +351,15 @@ function App() {
         =================================================== */}
 
         <div className="content">
-        {activePage === "Overview" ? (
-  <Dashboard />
-) : activePage === "Heat Map" ? (
-  <HeatMapPage />
-) : activePage === "Forecast" ? (
-  <ForecastPage />
-) : (
-  <Placeholder page={activePage} />
-)}
+          {activePage === "Overview" ? (
+            <Dashboard />
+          ) : activePage === "Heat Map" ? (
+            <HeatMapPage />
+          ) : activePage === "Forecast" ? (
+            <ForecastPage />
+          ) : (
+            <Placeholder page={activePage} />
+          )}
         </div>
       </main>
     </div>
@@ -455,9 +455,8 @@ function Dashboard() {
           <div className="forecast">
             {forecast.map((item, index) => (
               <div
-                className={`forecast-card ${
-                  index === 3 ? 'forecast-highlight' : ''
-                }`}
+                className={`forecast-card ${index === 3 ? 'forecast-highlight' : ''
+                  }`}
                 key={item.day}
               >
                 <span>{item.day}</span>
@@ -907,10 +906,21 @@ function HeatMapPage() {
   );
 }
 function ForecastPage() {
+  const [forecastData, setForecastData] = useState<any[]>([]);
   const [selectedDay, setSelectedDay] = useState(3);
 
-  const selected = forecast[selectedDay];
+  useEffect(() => {
+    fetch("http://localhost:5000/api/forecast")
+      .then((response) => response.json())
+      .then((data) => {
+        setForecastData(data);
+      })
+      .catch((error) => {
+        console.error("Error fetching forecast:", error);
+      });
+  }, []);
 
+  const selected = forecastData[selectedDay];
   return (
     <div className="forecast-page">
 
