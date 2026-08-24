@@ -1846,3 +1846,989 @@ button {
     min-width: 650px;
   }
 }
+/* =========================================================
+   THERMOSHIELD — MUNICIPAL / CLIMATE VISUAL SYSTEM
+========================================================= */
+
+:root {
+  --ts-bg: #f3f0e8;
+  --ts-surface: #fbfaf6;
+  --ts-surface-2: #eeece4;
+  --ts-border: #d9d8d0;
+  --ts-text: #26322f;
+  --ts-muted: #69736f;
+  --ts-hot: #c85c43;
+  --ts-hot-dark: #9e4634;
+  --ts-cool: #527a67;
+  --ts-sidebar: #26332f;
+}
+
+body {
+  background: var(--ts-bg) !important;
+  color: var(--ts-text);
+}
+
+.app-shell {
+  background: var(--ts-bg) !important;
+}
+
+.main {
+  background: var(--ts-bg) !important;
+}
+
+.content {
+  background: var(--ts-bg) !important;
+}.panel,
+.stat,
+.forecast-day,
+.forecast-confidence,
+.forecast-ai,
+.insight,
+.city-box {
+  background: var(--ts-surface) !important;
+  border-color: var(--ts-border) !important;
+  box-shadow: none !important;
+}.sidebar {
+  background: var(--ts-sidebar) !important;
+  border-right: none !important;
+}
+
+.brand h1 {
+  letter-spacing: -0.5px;
+}
+
+.brand-logo {
+  background: #d8c9a8 !important;
+  color: #26332f !important;
+  border-radius: 7px !important;
+}
+
+.menu-title {
+  color: #89948f !important;
+  letter-spacing: 1.4px;
+}
+
+.nav-item {
+  border-radius: 5px !important;
+  color: #b7c0bc !important;
+}
+
+.nav-item.active {
+  background: #35453f !important;
+  color: #f3f0e8 !important;
+  border-left: 3px solid #d8a56c;
+}.panel,
+.stat,
+.forecast-day,
+.forecast-confidence,
+.forecast-ai,
+.insight,
+.map-side-panel,
+.analysis-card {
+  border-radius: 7px !important;
+}
+
+button {
+  border-radius: 5px;
+}.risk-badge.extreme {
+  background: #c85c43 !important;
+  color: white !important;
+}
+
+.risk-badge.very-high {
+  background: #d58a52 !important;
+  color: white !important;
+}
+
+.risk-badge.high {
+  background: #c5a34e !important;
+  color: #26322f !important;
+}
+
+.risk-badge.moderate {
+  background: #789b87 !important;
+  color: white !important;
+}/* THERMOSHIELD BACKGROUND */
+
+html,
+body,
+#root {
+  background: #e9e7df !important;
+}
+
+body {
+  color: #26322f;
+}
+
+.app-shell {
+  background: #e9e7df !important;
+}
+
+.main {
+  background: #e9e7df !important;
+}
+
+.content {
+  background: #e9e7df !important;
+}/* =========================================================
+   THERMOSHIELD — FINAL PROFESSIONAL COLOR SYSTEM
+   Dark Navy + Cool Grey + White + Heat Orange/Red
+========================================================= */
+
+:root {
+  --ts-bg: #f1f4f5;
+  --ts-surface: #ffffff;
+  --ts-sidebar: #0d1b24;
+  --ts-sidebar-2: #132733;
+
+  --ts-text: #18252d;
+  --ts-secondary: #53616a;
+  --ts-muted: #87939a;
+
+  --ts-border: #dce3e6;
+  --ts-border-light: #e9edef;
+
+  --ts-red: #e8483e;
+  --ts-orange: #ef8b32;
+  --ts-yellow: #f2b84b;
+
+  --ts-green: #57a66d;
+  --ts-blue: #5f82d6;
+}
+
+
+/* =========================================================
+   GLOBAL BACKGROUND
+========================================================= */
+
+html,
+body,
+#root {
+  background: var(--ts-bg) !important;
+}
+
+body {
+  color: var(--ts-text) !important;
+  background: var(--ts-bg) !important;
+}
+
+.app-shell {
+  background: var(--ts-bg) !important;
+}
+
+.main {
+  background: var(--ts-bg) !important;
+}
+
+.content {
+  background: var(--ts-bg) !important;
+}
+
+
+/* =========================================================
+   SIDEBAR
+========================================================= */
+
+.sidebar {
+  background: var(--ts-sidebar) !important;
+  color: #ffffff !important;
+  border-right: none !important;
+}
+
+.brand {
+  color: #ffffff !important;
+}
+
+.brand h1 {
+  color: #ffffff !important;
+}
+
+.brand span {
+  color: #9ba9b0 !important;
+}
+
+.brand-logo {
+  background: #fff1ed !important;
+  color: var(--ts-red) !important;
+}
+
+
+/* Sidebar headings */
+
+.menu-title {
+  color: #7f9099 !important;
+}
+
+
+/* Navigation */
+
+.nav-item {
+  color: #c0cbd0 !important;
+  background: transparent !important;
+  border-radius: 7px !important;
+}
+
+.nav-item:hover {
+  background: #172b37 !important;
+  color: #ffffff !important;
+}
+
+.nav-item.active {
+  background: #263b48 !important;
+  color: #ffffff !important;
+}
+
+.nav-item.active svg {
+  color: #ffffff !important;
+}
+
+.nav-item b {
+  background: var(--ts-red) !important;
+  color: #ffffff !important;
+}
+
+
+/* Sidebar bottom */
+
+.city-box {
+  background: #182d39 !important;
+  border: 1px solid #29414e !important;
+}
+
+.city-box small {
+  color: #84949c !important;
+}
+
+.city-box strong {
+  color: #ffffff !important;
+}
+
+.city-box span {
+  color: #9caab0 !important;
+}
+
+.system-status {
+  color: #7fc58d !important;
+}
+
+.system-status i {
+  background: #5fc272 !important;
+}
+
+
+/* =========================================================
+   TOP BAR
+========================================================= */
+
+.topbar {
+  background: var(--ts-bg) !important;
+  border-bottom-color: var(--ts-border) !important;
+}
+
+.top-left h2 {
+  color: var(--ts-text) !important;
+}
+
+.top-left small {
+  color: var(--ts-muted) !important;
+}
+
+.top-right {
+  color: var(--ts-text) !important;
+}
+
+.heat-status {
+  color: var(--ts-secondary) !important;
+}
+
+.heat-status span {
+  background: #5dbb70 !important;
+}
+
+.notification {
+  color: var(--ts-text) !important;
+}
+
+.user > div {
+  background: #263b48 !important;
+  color: #ffffff !important;
+}
+
+.user strong {
+  color: var(--ts-text) !important;
+}
+
+.user span {
+  color: var(--ts-muted) !important;
+}
+
+
+/* =========================================================
+   MAIN HEADINGS
+========================================================= */
+
+.hero h1,
+.module-header h1 {
+  color: var(--ts-text) !important;
+}
+
+.hero h1 em {
+  color: var(--ts-red) !important;
+}
+
+.hero p,
+.module-header p {
+  color: var(--ts-secondary) !important;
+}
+
+.eyebrow {
+  color: var(--ts-muted) !important;
+}
+
+.eyebrow span {
+  background: var(--ts-red) !important;
+}
+
+
+/* =========================================================
+   CARDS
+========================================================= */
+
+.panel,
+.stat,
+.forecast-day,
+.forecast-confidence,
+.forecast-ai,
+.insight,
+.analysis-card,
+.map-side-panel {
+  background: var(--ts-surface) !important;
+  border-color: var(--ts-border) !important;
+  box-shadow: 0 1px 3px rgba(20, 35, 43, 0.035) !important;
+}
+
+
+/* Keep cards professional, not overly rounded */
+
+.panel,
+.stat,
+.forecast-day,
+.forecast-confidence,
+.forecast-ai,
+.insight,
+.analysis-card,
+.map-side-panel {
+  border-radius: 8px !important;
+}
+
+
+/* =========================================================
+   STAT CARDS
+========================================================= */
+
+.stat p {
+  color: var(--ts-secondary) !important;
+}
+
+.stat strong {
+  color: var(--ts-text) !important;
+}
+
+.stat small {
+  color: var(--ts-muted) !important;
+}
+
+.stat-icon {
+  background: #edf3f5 !important;
+  color: #536872 !important;
+}
+
+.stat-icon.danger {
+  background: #fff0ed !important;
+  color: var(--ts-red) !important;
+}
+
+.stat-top > span {
+  color: var(--ts-muted) !important;
+}
+
+.stat-top .danger-label {
+  color: var(--ts-red) !important;
+}
+
+
+/* =========================================================
+   PANEL HEADERS
+========================================================= */
+
+.panel-header h2 {
+  color: var(--ts-text) !important;
+}
+
+.panel-header p {
+  color: var(--ts-muted) !important;
+}
+
+.panel-action {
+  color: var(--ts-secondary) !important;
+}
+
+
+/* =========================================================
+   FORECAST
+========================================================= */
+
+.forecast-card {
+  background: #ffffff !important;
+}
+
+.forecast-card span {
+  color: var(--ts-secondary) !important;
+}
+
+.forecast-card strong {
+  color: var(--ts-text) !important;
+}
+
+.forecast-card small {
+  color: var(--ts-muted) !important;
+}
+
+.forecast-card b {
+  color: var(--ts-red) !important;
+}
+
+.forecast-highlight {
+  background: #fff7f5 !important;
+  border-color: #f1c5be !important;
+}
+
+
+/* =========================================================
+   RISK COLORS
+========================================================= */
+
+.risk-badge {
+  border: none !important;
+  font-weight: 700 !important;
+}
+
+.risk-badge.extreme {
+  background: #ffe4e0 !important;
+  color: #d9372e !important;
+}
+
+.risk-badge.very-high {
+  background: #fff0df !important;
+  color: #d8751c !important;
+}
+
+.risk-badge.high {
+  background: #fff5d9 !important;
+  color: #a67812 !important;
+}
+
+.risk-badge.moderate {
+  background: #e4f2e7 !important;
+  color: #3e8050 !important;
+}
+
+
+/* =========================================================
+   RISK SECTION
+========================================================= */
+
+.risk-circle {
+  background: #fff0ed !important;
+  border-color: #f1c0ba !important;
+}
+
+.risk-circle strong {
+  color: var(--ts-red) !important;
+}
+
+.risk-circle span {
+  color: var(--ts-muted) !important;
+}
+
+.risk-text label {
+  color: var(--ts-red) !important;
+}
+
+.risk-text h3 {
+  color: var(--ts-text) !important;
+}
+
+.risk-text p {
+  color: var(--ts-muted) !important;
+}
+
+.factor {
+  border-color: var(--ts-border-light) !important;
+}
+
+.factor span {
+  color: var(--ts-secondary) !important;
+}
+
+.factor strong {
+  color: var(--ts-text) !important;
+}
+
+.progress {
+  background: #e8edef !important;
+}
+
+.progress i {
+  background: var(--ts-red) !important;
+}
+
+
+/* =========================================================
+   WARD TABLE
+========================================================= */
+
+.ward-header {
+  background: #f7f9fa !important;
+}
+
+.ward-header span {
+  color: var(--ts-muted) !important;
+}
+
+.ward-row {
+  border-color: var(--ts-border-light) !important;
+}
+
+.ward-row strong {
+  color: var(--ts-text) !important;
+}
+
+.ward-row b {
+  color: var(--ts-red) !important;
+}
+
+.ward-row span {
+  color: var(--ts-secondary) !important;
+}
+
+.ward-row button {
+  color: var(--ts-blue) !important;
+}
+
+
+/* =========================================================
+   COOLING PLANNER
+========================================================= */
+
+.cooling {
+  background: #122630 !important;
+  border-color: #122630 !important;
+  color: #ffffff !important;
+}
+
+.cooling-left small {
+  color: #9aaeb6 !important;
+}
+
+.cooling-left h2 {
+  color: #ffffff !important;
+}
+
+.cooling-left p {
+  color: #aebdc3 !important;
+}
+
+.ai-logo {
+  background: #233c48 !important;
+  color: #f2a15b !important;
+}
+
+.cooling-right {
+  border-left-color: #334a55 !important;
+}
+
+.cooling-right small {
+  color: #92a5ad !important;
+}
+
+.cooling-right strong {
+  color: #ffffff !important;
+}
+
+
+/* =========================================================
+   INSIGHTS
+========================================================= */
+
+.insight {
+  color: var(--ts-text) !important;
+}
+
+.insight-icon {
+  background: #edf2f3 !important;
+  color: #50666f !important;
+}
+
+.insight h3 {
+  color: var(--ts-text) !important;
+}
+
+.insight p {
+  color: var(--ts-muted) !important;
+}
+
+.insight button {
+  color: var(--ts-blue) !important;
+}
+
+
+/* =========================================================
+   MAP
+========================================================= */
+
+.map-toolbar {
+  background: #ffffff !important;
+  border-color: var(--ts-border) !important;
+}
+
+.layer-buttons button {
+  color: var(--ts-secondary) !important;
+  background: #ffffff !important;
+  border-color: var(--ts-border) !important;
+}
+
+.layer-buttons button:hover,
+.layer-buttons .layer-active {
+  background: #243943 !important;
+  color: #ffffff !important;
+  border-color: #243943 !important;
+}
+
+.map-info {
+  color: var(--ts-secondary) !important;
+}
+
+.live-dot-map {
+  background: #5bb96c !important;
+}
+
+.map-legend {
+  background: rgba(255,255,255,.96) !important;
+  border-color: var(--ts-border) !important;
+}
+
+
+/* =========================================================
+   FORECAST PAGE
+========================================================= */
+
+.forecast-confidence {
+  background: #ffffff !important;
+}
+
+.forecast-confidence strong {
+  color: var(--ts-text) !important;
+}
+
+.forecast-confidence span,
+.forecast-confidence small {
+  color: var(--ts-muted) !important;
+}
+
+.forecast-day {
+  background: #ffffff !important;
+}
+
+.forecast-day:hover {
+  border-color: #bac7cc !important;
+}
+
+.forecast-day.active {
+  border-color: #253b46 !important;
+  box-shadow: 0 2px 8px rgba(20,35,43,.06) !important;
+}
+
+.forecast-day strong {
+  color: var(--ts-text) !important;
+}
+
+.forecast-day em {
+  color: var(--ts-muted) !important;
+}
+
+.weather-metric {
+  background: #f6f8f8 !important;
+}
+
+.weather-metric svg {
+  color: #62747d !important;
+}
+
+.weather-metric span {
+  color: var(--ts-muted) !important;
+}
+
+.weather-metric strong {
+  color: var(--ts-text) !important;
+}
+
+.weather-metric small {
+  color: var(--ts-muted) !important;
+}
+
+
+/* =========================================================
+   THERMAL INDEX
+========================================================= */
+
+.index-card {
+  background: #ffffff !important;
+  border-color: var(--ts-border) !important;
+}
+
+.index-card > span {
+  color: var(--ts-secondary) !important;
+}
+
+.index-card strong {
+  color: var(--ts-text) !important;
+}
+
+.index-card small {
+  color: var(--ts-muted) !important;
+}
+
+.index-bar {
+  background: #e8edef !important;
+}
+
+.index-bar i {
+  background: var(--ts-red) !important;
+}
+
+
+/* =========================================================
+   PEAK HEAT
+========================================================= */
+
+.peak-panel {
+  background: #122630 !important;
+}
+
+.peak-label {
+  color: #9cafb7 !important;
+}
+
+.peak-icon {
+  background: #243b47 !important;
+}
+
+.peak-temperature {
+  color: #ff7668 !important;
+}
+
+.peak-panel > p {
+  color: #aab9be !important;
+}
+
+.peak-risk {
+  border-color: #304852 !important;
+}
+
+.peak-risk span {
+  color: #92a4ab !important;
+}
+
+.peak-recommendation {
+  color: #b5c2c7 !important;
+}
+
+
+/* =========================================================
+   AI INTERPRETATION
+========================================================= */
+
+.forecast-ai {
+  background: #ffffff !important;
+}
+
+.forecast-ai-icon {
+  background: #eef3f4 !important;
+  color: #526a73 !important;
+}
+
+.forecast-ai span {
+  color: var(--ts-muted) !important;
+}
+
+.forecast-ai h2 {
+  color: var(--ts-text) !important;
+}
+
+.forecast-ai p {
+  color: var(--ts-secondary) !important;
+}
+
+
+/* =========================================================
+   TABLE
+========================================================= */
+
+.forecast-table-head {
+  background: #f5f7f8 !important;
+}
+
+.forecast-table-head span {
+  color: var(--ts-muted) !important;
+}
+
+.forecast-table-row {
+  border-color: var(--ts-border-light) !important;
+}
+
+.forecast-table-row strong,
+.forecast-table-row span {
+  color: var(--ts-text) !important;
+}
+
+
+/* =========================================================
+   PLACEHOLDER
+========================================================= */
+
+.placeholder {
+  background: transparent !important;
+}
+
+.placeholder > div {
+  background: #e9eff1 !important;
+  color: #536872 !important;
+}
+
+.placeholder small {
+  color: var(--ts-muted) !important;
+}
+
+.placeholder h1 {
+  color: var(--ts-text) !important;
+}
+
+.placeholder p {
+  color: var(--ts-secondary) !important;
+}/* =========================================================
+   THERMOSHIELD — BOX POP ANIMATION
+========================================================= */
+
+.stat,
+.two-column > .panel,
+.ward-panel,
+.cooling,
+.insight {
+  animation: boxPop 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: center bottom;
+}
+
+
+/* Individual timing */
+
+.stat:nth-child(1) {
+  animation-delay: 0.05s;
+}
+
+.stat:nth-child(2) {
+  animation-delay: 0.12s;
+}
+
+.stat:nth-child(3) {
+  animation-delay: 0.19s;
+}
+
+.stat:nth-child(4) {
+  animation-delay: 0.26s;
+}
+
+.two-column > .panel:nth-child(1) {
+  animation-delay: 0.34s;
+}
+
+.two-column > .panel:nth-child(2) {
+  animation-delay: 0.41s;
+}
+
+.ward-panel {
+  animation-delay: 0.48s;
+}
+
+.cooling {
+  animation-delay: 0.55s;
+}
+
+.insight:nth-child(1) {
+  animation-delay: 0.62s;
+}
+
+.insight:nth-child(2) {
+  animation-delay: 0.69s;
+}
+
+.insight:nth-child(3) {
+  animation-delay: 0.76s;
+}
+
+
+/* POP */
+
+@keyframes boxPop {
+
+  0% {
+    opacity: 0;
+    transform: scale(0.88) translateY(18px);
+  }
+
+  65% {
+    opacity: 1;
+    transform: scale(1.025) translateY(-2px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+
+}
+
+
+/* Hover */
+
+.stat,
+.insight {
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.stat:hover,
+.insight:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(20, 35, 43, 0.08);
+}/* =========================================================
+   OVERVIEW CARDS — HOVER LIFT
+========================================================= */
+
+.stat,
+.insight,
+.forecast-card,
+.ward-panel {
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.stat:hover,
+.insight:hover,
+.forecast-card:hover,
+.ward-panel:hover {
+  transform: translateY(-7px);
+  box-shadow: 0 10px 24px rgba(24, 37, 45, 0.10);
+}
