@@ -371,6 +371,19 @@ function App() {
 ========================================================= */
 
 function Dashboard() {
+  const [wardsData, setWardsData] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch("http://localhost:5000/api/wards")
+      .then((response) => response.json())
+      .then((data) => {
+        setWardsData(data);
+      })
+      .catch((error) => {
+        console.error("Error fetching wards:", error);
+      });
+  }, []);
+
   return (
     <div className="dashboard">
       {/* HERO */}
@@ -562,7 +575,7 @@ function Dashboard() {
           <span />
         </div>
 
-        {wards.map((ward) => (
+        {wardsData.map((ward) => (
           <div className="ward-row" key={ward.ward}>
             <strong>Ward {ward.ward}</strong>
 
@@ -921,6 +934,10 @@ function ForecastPage() {
   }, []);
 
   const selected = forecastData[selectedDay];
+
+  if (!selected) {
+    return <div>Loading forecast...</div>;
+  }
   return (
     <div className="forecast-page">
 
@@ -968,7 +985,7 @@ function ForecastPage() {
 
       <div className="forecast-days">
 
-        {forecast.map((item, index) => (
+        {forecastData.map((item, index) => (
 
           <button
             key={item.day}
@@ -1286,7 +1303,7 @@ function ForecastPage() {
 
           </div>
 
-          {forecast.map((item) => (
+          {forecastData.map((item) => (
 
             <div
               className="forecast-table-row"
