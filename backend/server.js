@@ -86,37 +86,73 @@ app.get("/api/forecast", (req, res) => {
             risk: "Very High"
         }
     ]);
-}); app.get("/api/wards", (req, res) => {
+}); 
+app.get("/api/wards", (req, res) => {
     res.json([
         {
-            ward: 1,
-            temperature: 42,
-            population: 18500,
-            risk: "High"
-        },
-        {
-            ward: 2,
+            ward: 12,
+            lat: 20.2961,
+            lng: 85.8245,
             temperature: 44,
-            population: 22100,
+            humidity: 72,
+            wind: 7,
+            radiation: 8.5,
+            wbgt: 32.8,
+            utci: 42.4,
+            population: 18400,
             risk: "Extreme"
         },
         {
-            ward: 3,
-            temperature: 40,
-            population: 16700,
-            risk: "Moderate"
+            ward: 19,
+            lat: 20.302,
+            lng: 85.835,
+            temperature: 43,
+            humidity: 69,
+            wind: 8,
+            radiation: 8.1,
+            wbgt: 31.6,
+            utci: 40.8,
+            population: 21200,
+            risk: "Very High"
         },
         {
-            ward: 4,
-            temperature: 43,
-            population: 19800,
+            ward: 25,
+            lat: 20.288,
+            lng: 85.81,
+            temperature: 42,
+            humidity: 65,
+            wind: 10,
+            radiation: 7.8,
+            wbgt: 30.4,
+            utci: 38.9,
+            population: 15800,
             risk: "High"
         },
         {
-            ward: 5,
-            temperature: 45,
-            population: 24300,
-            risk: "Extreme"
+            ward: 35,
+            lat: 20.31,
+            lng: 85.805,
+            temperature: 41,
+            humidity: 61,
+            wind: 12,
+            radiation: 7.2,
+            wbgt: 29.7,
+            utci: 36.9,
+            population: 17300,
+            risk: "High"
+        },
+        {
+            ward: 31,
+            lat: 20.278,
+            lng: 85.83,
+            temperature: 40,
+            humidity: 58,
+            wind: 14,
+            radiation: 6.9,
+            wbgt: 28.3,
+            utci: 34.8,
+            population: 12600,
+            risk: "Moderate"
         }
     ]);
 });

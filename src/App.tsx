@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react';
-
+import { useEffect, useMemo, useState } from "react";
 import {
   Activity,
   Bell,
@@ -7,7 +6,7 @@ import {
   CloudSun,
   Droplets,
   LayoutDashboard,
-  Map,
+  Map as MapIcon,
   Menu,
   MessageSquare,
   ShieldAlert,
@@ -17,27 +16,130 @@ import {
   Wind,
   X,
   Zap,
-} from 'lucide-react';
+  Smartphone,
+  Building2,
+  CircleAlert,
+} from "lucide-react";
 
-import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet';
+import {
+  MapContainer,
+  TileLayer,
+  CircleMarker,
+  Popup,
+} from "react-leaflet";
 
-import 'leaflet/dist/leaflet.css';
-import './App.css';
+import "leaflet/dist/leaflet.css";
+import "./App.css";
 
 type Page =
-  | 'Overview'
-  | 'Heat Map'
-  | 'Forecast'
-  | 'Risk Analysis'
-  | 'AI Cooling Plan'
-  | 'Digital Twin'
-  | 'Alerts';
+  | "Overview"
+  | "Heat Map"
+  | "Forecast"
+  | "Risk Analysis"
+  | "AI Cooling Plan"
+  | "Digital Twin"
+  | "Alerts";
 
-/* =========================================================
-   MOCK DATA
-========================================================= */
+type Risk = "Extreme" | "Very High" | "High" | "Moderate";
 
-const forecast = [
+type Ward = {
+  ward: number;
+  lat: number;
+  lng: number;
+  temperature: number;
+  humidity: number;
+  wind: number;
+  radiation: number;
+  wbgt: number;
+  utci: number;
+  population: number;
+  risk: Risk;
+};
+
+/*
+=========================================================
+WARD DATA
+=========================================================
+This is still used by Heat Map and Risk Analysis.
+Later we can move this completely to the backend.
+*/
+
+const wards: Ward[] = [
+  {
+    ward: 12,
+    lat: 20.2961,
+    lng: 85.8245,
+    temperature: 44,
+    humidity: 72,
+    wind: 7,
+    radiation: 8.5,
+    wbgt: 32.8,
+    utci: 42.4,
+    population: 18400,
+    risk: "Extreme",
+  },
+  {
+    ward: 19,
+    lat: 20.302,
+    lng: 85.835,
+    temperature: 43,
+    humidity: 69,
+    wind: 8,
+    radiation: 8.1,
+    wbgt: 31.6,
+    utci: 40.8,
+    population: 21200,
+    risk: "Very High",
+  },
+  {
+    ward: 25,
+    lat: 20.288,
+    lng: 85.81,
+    temperature: 42,
+    humidity: 65,
+    wind: 10,
+    radiation: 7.8,
+    wbgt: 30.4,
+    utci: 38.9,
+    population: 15800,
+    risk: "High",
+  },
+  {
+    ward: 35,
+    lat: 20.31,
+    lng: 85.805,
+    temperature: 41,
+    humidity: 61,
+    wind: 12,
+    radiation: 7.2,
+    wbgt: 29.7,
+    utci: 36.9,
+    population: 17300,
+    risk: "High",
+  },
+  {
+    ward: 31,
+    lat: 20.278,
+    lng: 85.83,
+    temperature: 40,
+    humidity: 58,
+    wind: 14,
+    radiation: 6.9,
+    wbgt: 28.3,
+    utci: 34.8,
+    population: 12600,
+    risk: "Moderate",
+  },
+];
+
+/*
+=========================================================
+FALLBACK FORECAST DATA
+=========================================================
+Used only as a fallback if the backend is unavailable.
+*/
+
+const fallbackForecast = [
   {
     day: "Today",
     date: "23 Aug",
@@ -48,7 +150,7 @@ const forecast = [
     radiation: 7.2,
     wbgt: 28.4,
     utci: 34.8,
-    risk: "High",
+    risk: "High" as Risk,
   },
   {
     day: "Mon",
@@ -60,7 +162,7 @@ const forecast = [
     radiation: 7.8,
     wbgt: 30.1,
     utci: 37.2,
-    risk: "High",
+    risk: "High" as Risk,
   },
   {
     day: "Tue",
@@ -72,7 +174,7 @@ const forecast = [
     radiation: 8.1,
     wbgt: 32.0,
     utci: 40.1,
-    risk: "Very High",
+    risk: "Very High" as Risk,
   },
   {
     day: "Wed",
@@ -84,7 +186,7 @@ const forecast = [
     radiation: 8.5,
     wbgt: 33.2,
     utci: 42.4,
-    risk: "Extreme",
+    risk: "Extreme" as Risk,
   },
   {
     day: "Thu",
@@ -96,103 +198,24 @@ const forecast = [
     radiation: 7.9,
     wbgt: 31.4,
     utci: 39.0,
-    risk: "Very High",
+    risk: "Very High" as Risk,
   },
 ];
 
-const wards = [
-  {
-    ward: 12,
-    temperature: 44,
-    population: '18.4K',
-    risk: 'Extreme',
-  },
-  {
-    ward: 19,
-    temperature: 43,
-    population: '21.2K',
-    risk: 'Very High',
-  },
-  {
-    ward: 25,
-    temperature: 42,
-    population: '15.8K',
-    risk: 'High',
-  },
-  {
-    ward: 35,
-    temperature: 41,
-    population: '17.3K',
-    risk: 'High',
-  },
-  {
-    ward: 31,
-    temperature: 40,
-    population: '12.6K',
-    risk: 'Moderate',
-  },
-];
-
-const heatZones = [
-  {
-    ward: 12,
-    lat: 20.2961,
-    lng: 85.8245,
-    temperature: 44,
-    risk: 'Extreme',
-    wbgt: 32.8,
-    population: '18.4K',
-  },
-  {
-    ward: 19,
-    lat: 20.302,
-    lng: 85.835,
-    temperature: 43,
-    risk: 'Very High',
-    wbgt: 31.6,
-    population: '21.2K',
-  },
-  {
-    ward: 25,
-    lat: 20.288,
-    lng: 85.81,
-    temperature: 42,
-    risk: 'High',
-    wbgt: 30.4,
-    population: '15.8K',
-  },
-  {
-    ward: 35,
-    lat: 20.31,
-    lng: 85.805,
-    temperature: 41,
-    risk: 'High',
-    wbgt: 29.7,
-    population: '17.3K',
-  },
-  {
-    ward: 31,
-    lat: 20.278,
-    lng: 85.83,
-    temperature: 40,
-    risk: 'Moderate',
-    wbgt: 28.3,
-    population: '12.6K',
-  },
-];
-
-/* =========================================================
-   MAIN APP
-========================================================= */
+const riskRank: Record<Risk, number> = {
+  Extreme: 4,
+  "Very High": 3,
+  High: 2,
+  Moderate: 1,
+};
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [activePage, setActivePage] = useState<Page>('Overview');
+  const [activePage, setActivePage] = useState<Page>("Overview");
 
   const navigate = (page: Page) => {
     setActivePage(page);
 
-    // Mobile par page select karne ke baad sidebar close
     if (window.innerWidth <= 850) {
       setSidebarOpen(false);
     }
@@ -200,11 +223,9 @@ function App() {
 
   return (
     <div className="app-shell">
-      {/* =====================================================
-          SIDEBAR
-      ===================================================== */}
+      {/* SIDEBAR */}
 
-      <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
+      <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
         <div className="brand">
           <div className="brand-logo">
             <Thermometer size={21} />
@@ -229,29 +250,29 @@ function App() {
           <NavItem
             icon={<LayoutDashboard size={18} />}
             label="Overview"
-            active={activePage === 'Overview'}
-            onClick={() => navigate('Overview')}
+            active={activePage === "Overview"}
+            onClick={() => navigate("Overview")}
           />
 
           <NavItem
-            icon={<Map size={18} />}
+            icon={<MapIcon size={18} />}
             label="Heat Map"
-            active={activePage === 'Heat Map'}
-            onClick={() => navigate('Heat Map')}
+            active={activePage === "Heat Map"}
+            onClick={() => navigate("Heat Map")}
           />
 
           <NavItem
             icon={<CloudSun size={18} />}
             label="Forecast"
-            active={activePage === 'Forecast'}
-            onClick={() => navigate('Forecast')}
+            active={activePage === "Forecast"}
+            onClick={() => navigate("Forecast")}
           />
 
           <NavItem
             icon={<ShieldAlert size={18} />}
             label="Risk Analysis"
-            active={activePage === 'Risk Analysis'}
-            onClick={() => navigate('Risk Analysis')}
+            active={activePage === "Risk Analysis"}
+            onClick={() => navigate("Risk Analysis")}
           />
         </nav>
 
@@ -261,22 +282,22 @@ function App() {
           <NavItem
             icon={<Zap size={18} />}
             label="AI Cooling Plan"
-            active={activePage === 'AI Cooling Plan'}
-            onClick={() => navigate('AI Cooling Plan')}
+            active={activePage === "AI Cooling Plan"}
+            onClick={() => navigate("AI Cooling Plan")}
           />
 
           <NavItem
             icon={<Activity size={18} />}
             label="Digital Twin"
-            active={activePage === 'Digital Twin'}
-            onClick={() => navigate('Digital Twin')}
+            active={activePage === "Digital Twin"}
+            onClick={() => navigate("Digital Twin")}
           />
 
           <NavItem
             icon={<Bell size={18} />}
             label="Alerts"
-            active={activePage === 'Alerts'}
-            onClick={() => navigate('Alerts')}
+            active={activePage === "Alerts"}
+            onClick={() => navigate("Alerts")}
             badge="7"
           />
         </nav>
@@ -284,9 +305,7 @@ function App() {
         <div className="sidebar-bottom">
           <div className="city-box">
             <small>MONITORED CITY</small>
-
             <strong>Bhubaneswar</strong>
-
             <span>Odisha, India</span>
           </div>
 
@@ -297,13 +316,9 @@ function App() {
         </div>
       </aside>
 
-      {/* =====================================================
-          MAIN
-      ===================================================== */}
+      {/* MAIN */}
 
-      <main className={sidebarOpen ? 'main shifted' : 'main'}>
-        {/* TOP BAR */}
-
+      <main className={sidebarOpen ? "main shifted" : "main"}>
         <header className="topbar">
           <div className="top-left">
             {!sidebarOpen && (
@@ -317,7 +332,6 @@ function App() {
 
             <div>
               <small>Bhubaneswar / ThermoShield</small>
-
               <h2>{activePage}</h2>
             </div>
           </div>
@@ -330,7 +344,6 @@ function App() {
 
             <button className="notification">
               <Bell size={19} />
-
               <i />
             </button>
 
@@ -339,27 +352,38 @@ function App() {
 
               <section>
                 <strong>Admin</strong>
-
                 <span>Municipality</span>
               </section>
             </div>
           </div>
         </header>
 
-        {/* ===================================================
-            PAGE CONTENT
-        =================================================== */}
-
         <div className="content">
-          {activePage === "Overview" ? (
-            <Dashboard />
-          ) : activePage === "Heat Map" ? (
-            <HeatMapPage />
-          ) : activePage === "Forecast" ? (
-            <ForecastPage />
-          ) : (
-            <Placeholder page={activePage} />
+          {activePage === "Overview" && (
+            <Dashboard navigate={navigate} />
           )}
+
+          {activePage === "Heat Map" && (
+            <HeatMapPage navigate={navigate} />
+          )}
+
+          {activePage === "Forecast" && (
+            <ForecastPage navigate={navigate} />
+          )}
+
+          {activePage === "Risk Analysis" && (
+            <RiskAnalysisPage navigate={navigate} />
+          )}
+
+          {activePage === "AI Cooling Plan" && (
+            <CoolingPlanPage navigate={navigate} />
+          )}
+
+          {activePage === "Digital Twin" && (
+            <DigitalTwinPage navigate={navigate} />
+          )}
+
+          {activePage === "Alerts" && <AlertsPage />}
         </div>
       </main>
     </div>
@@ -367,11 +391,15 @@ function App() {
 }
 
 /* =========================================================
-   OVERVIEW DASHBOARD
+   DASHBOARD
 ========================================================= */
 
-function Dashboard() {
-  const [wardsData, setWardsData] = useState<any[]>([]);
+function Dashboard({
+  navigate,
+}: {
+  navigate: (page: Page) => void;
+}) {
+  const [wardsData, setWardsData] = useState<Ward[]>([]);
 
   useEffect(() => {
     fetch("http://localhost:5000/api/wards")
@@ -381,13 +409,17 @@ function Dashboard() {
       })
       .catch((error) => {
         console.error("Error fetching wards:", error);
+
+        // fallback so the page still works
+        setWardsData(wards);
       });
   }, []);
 
+  const displayWards =
+    wardsData.length > 0 ? wardsData : wards;
+
   return (
     <div className="dashboard">
-      {/* HERO */}
-
       <section className="hero">
         <div>
           <div className="eyebrow">
@@ -402,20 +434,21 @@ function Dashboard() {
           </h1>
 
           <p>
-            ThermoShield combines weather, satellite and demographic data to
-            predict human thermal risk and help authorities take action before
-            extreme heat impacts communities.
+            ThermoShield combines weather, satellite and demographic
+            data to predict human thermal risk and help authorities
+            act before extreme heat impacts communities.
           </p>
         </div>
 
-        <button className="primary-button">
+        <button
+          className="primary-button"
+          onClick={() => navigate("AI Cooling Plan")}
+        >
           <Zap size={17} />
           Generate AI Cooling Plan
           <ChevronRight size={17} />
         </button>
       </section>
-
-      {/* STATS */}
 
       <section className="stats">
         <Stat
@@ -439,7 +472,7 @@ function Dashboard() {
           icon={<Users />}
           title="Population at Risk"
           value="72.4K"
-          description="Across 8 high-risk wards"
+          description="Across high-risk wards"
           label="EXPOSED"
         />
 
@@ -453,11 +486,7 @@ function Dashboard() {
         />
       </section>
 
-      {/* TWO COLUMN */}
-
       <section className="two-column">
-        {/* FORECAST */}
-
         <div className="panel">
           <PanelHeader
             title="5-Day Heat Forecast"
@@ -466,9 +495,9 @@ function Dashboard() {
           />
 
           <div className="forecast">
-            {forecast.map((item, index) => (
+            {fallbackForecast.map((item, i) => (
               <div
-                className={`forecast-card ${index === 3 ? 'forecast-highlight' : ''
+                className={`forecast-card ${i === 3 ? "forecast-highlight" : ""
                   }`}
                 key={item.day}
               >
@@ -495,14 +524,12 @@ function Dashboard() {
               <strong>Peak heat expected Wednesday</strong>
 
               <p>
-                Temperature may reach 44°C with high humidity, increasing human
-                thermal stress.
+                Temperature may reach 44°C with high humidity,
+                increasing human thermal stress.
               </p>
             </div>
           </div>
         </div>
-
-        {/* RISK */}
 
         <div className="panel">
           <PanelHeader
@@ -513,7 +540,6 @@ function Dashboard() {
           <div className="risk-section">
             <div className="risk-circle">
               <strong>84</strong>
-
               <span>/100</span>
             </div>
 
@@ -523,8 +549,8 @@ function Dashboard() {
               <h3>Extreme thermal stress</h3>
 
               <p>
-                Temperature, humidity, wind speed and solar radiation are
-                creating dangerous thermal conditions.
+                Temperature, humidity, wind speed and solar
+                radiation are creating dangerous thermal conditions.
               </p>
             </div>
           </div>
@@ -554,46 +580,38 @@ function Dashboard() {
         </div>
       </section>
 
-      {/* WARDS */}
-
       <section className="panel ward-panel">
         <PanelHeader
           title="Highest-Risk Wards"
           subtitle="Locations requiring immediate attention"
-          action="Open heat map"
+          action="Open risk analysis"
         />
 
         <div className="ward-header">
           <span>WARD</span>
-
           <span>TEMPERATURE</span>
-
           <span>POPULATION AT RISK</span>
-
           <span>RISK LEVEL</span>
-
           <span />
         </div>
 
-        {wardsData.map((ward) => (
-          <div className="ward-row" key={ward.ward}>
-            <strong>Ward {ward.ward}</strong>
+        {displayWards.map((w) => (
+          <div className="ward-row" key={w.ward}>
+            <strong>Ward {w.ward}</strong>
 
-            <b>{ward.temperature}°C</b>
+            <b>{w.temperature}°C</b>
 
-            <span>{ward.population}</span>
+            <span>{formatK(w.population)}</span>
 
-            <RiskBadge risk={ward.risk} />
+            <RiskBadge risk={w.risk} />
 
-            <button>
+            <button onClick={() => navigate("Risk Analysis")}>
               Analyze
               <ChevronRight size={14} />
             </button>
           </div>
         ))}
       </section>
-
-      {/* AI COOLING */}
 
       <section className="cooling">
         <div className="cooling-left">
@@ -611,9 +629,9 @@ function Dashboard() {
             </h2>
 
             <p>
-              Enter the available budget and ThermoShield automatically
-              determines where to intervene, what intervention to use and how
-              much to spend for maximum heat reduction.
+              Enter the available budget and the system determines
+              where to intervene, which intervention to use and
+              how much to spend for maximum heat reduction.
             </p>
           </div>
         </div>
@@ -623,14 +641,12 @@ function Dashboard() {
 
           <strong>₹50 Cr</strong>
 
-          <button>
+          <button onClick={() => navigate("AI Cooling Plan")}>
             Open AI Planner
             <ChevronRight size={16} />
           </button>
         </div>
       </section>
-
-      {/* INSIGHTS */}
 
       <section className="insights">
         <Insight
@@ -638,6 +654,7 @@ function Dashboard() {
           title="Low Vegetation"
           description="12 wards have critically low vegetation coverage."
           action="View areas"
+          onClick={() => navigate("AI Cooling Plan")}
         />
 
         <Insight
@@ -645,6 +662,7 @@ function Dashboard() {
           title="Automated Alerts"
           description="SMS and WhatsApp heat advisories are active."
           action="View alerts"
+          onClick={() => navigate("Alerts")}
         />
 
         <Insight
@@ -652,6 +670,7 @@ function Dashboard() {
           title="Digital Twin"
           description="Simulate cooling interventions before deployment."
           action="Run simulation"
+          onClick={() => navigate("Digital Twin")}
         />
       </section>
     </div>
@@ -659,63 +678,122 @@ function Dashboard() {
 }
 
 /* =========================================================
-   HEAT MAP PAGE
+   HEAT MAP
 ========================================================= */
 
-function HeatMapPage() {
-  const getRiskColor = (risk: string) => {
-    if (risk === 'Extreme') {
-      return '#d94d4d';
+function HeatMapPage({
+  navigate,
+}: {
+  navigate: (page: Page) => void;
+}) {
+  type Layer =
+    | "risk"
+    | "temperature"
+    | "wbgt"
+    | "population";
+
+  const [layer, setLayer] = useState<Layer>("risk");
+
+  const [wardsData, setWardsData] = useState<Ward[]>([]);
+
+  useEffect(() => {
+    fetch("http://localhost:5000/api/wards")
+      .then((response) => response.json())
+      .then((data) => {
+        setWardsData(data);
+      })
+      .catch((error) => {
+        console.error("Error fetching wards:", error);
+      });
+  }, []);
+  const sorted = useMemo(() => {
+    return [...wardsData].sort((a, b) => {
+      if (layer === "temperature") {
+        return b.temperature - a.temperature;
+      }
+
+      if (layer === "wbgt") {
+        return b.wbgt - a.wbgt;
+      }
+
+      if (layer === "population") {
+        return b.population - a.population;
+      }
+
+      return riskRank[b.risk] - riskRank[a.risk];
+    });
+  }, [layer, wardsData]);
+
+  const color = (w: Ward) => {
+    if (layer === "temperature") {
+      if (w.temperature >= 44) return "#c94141";
+      if (w.temperature >= 43) return "#dc6545";
+      if (w.temperature >= 42) return "#e09b3f";
+      return "#668fa3";
     }
 
-    if (risk === 'Very High') {
-      return '#dc7c3d';
+    if (layer === "wbgt") {
+      if (w.wbgt >= 32) return "#a94f76";
+      if (w.wbgt >= 31) return "#c96061";
+      if (w.wbgt >= 30) return "#dc9145";
+      return "#5f8ea4";
     }
 
-    if (risk === 'High') {
-      return '#c5a33e';
+    if (layer === "population") {
+      if (w.population >= 20000) return "#326f82";
+      if (w.population >= 18000) return "#47879a";
+      if (w.population >= 16000) return "#5b99a7";
+      return "#78aeb5";
     }
 
-    return '#5d8aa0';
+    if (w.risk === "Extreme") return "#d94d4d";
+    if (w.risk === "Very High") return "#e07845";
+    if (w.risk === "High") return "#d4a33d";
+
+    return "#6d94a5";
+  };
+
+  const value = (w: Ward) => {
+    if (layer === "risk") return w.risk;
+
+    if (layer === "temperature") {
+      return `${w.temperature}°C`;
+    }
+
+    if (layer === "wbgt") {
+      return `${w.wbgt}°C`;
+    }
+
+    return formatK(w.population);
   };
 
   return (
     <div className="heat-map-page">
-      {/* HEADER */}
-
-      <div className="module-header">
-        <div>
-          <div className="eyebrow">
-            <span />
-            HYPERLOCAL HEAT INTELLIGENCE
-          </div>
-
-          <h1>Urban Heat Map</h1>
-
-          <p>
-            Explore temperature and human thermal stress across Bhubaneswar at
-            ward level.
-          </p>
-        </div>
-
-        <div className="map-date">
-          <span>DATA UPDATED</span>
-
-          <strong>23 Aug 2026 · 18:30</strong>
-        </div>
-      </div>
-
-      {/* TOOLBAR */}
+      <ModuleHeader
+        eyebrow="HYPERLOCAL HEAT INTELLIGENCE"
+        title="Urban Heat Map"
+        text="Explore temperature and human thermal stress across Bhubaneswar at ward level."
+        right="Updated 18:30"
+      />
 
       <div className="map-toolbar">
         <div className="layer-buttons">
-          <button className="layer-active">Thermal Risk</button>
-
-          <button>Temperature</button>
-
-          <button>WBGT</button>
-
-          <button>Population</button>
+          {(
+            [
+              ["risk", "Thermal Risk"],
+              ["temperature", "Temperature"],
+              ["wbgt", "WBGT"],
+              ["population", "Population"],
+            ] as [Layer, string][]
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              className={layer === id ? "layer-active" : ""}
+              onClick={() => setLayer(id)}
+            >
+              {label}
+            </button>
+          ))}
         </div>
 
         <div className="map-info">
@@ -724,14 +802,12 @@ function HeatMapPage() {
         </div>
       </div>
 
-      {/* MAP */}
-
       <div className="map-layout">
         <div className="map-container">
           <MapContainer
             center={[20.2961, 85.8245]}
             zoom={12}
-            scrollWheelZoom={true}
+            scrollWheelZoom
             className="leaflet-map"
           >
             <TileLayer
@@ -739,187 +815,146 @@ function HeatMapPage() {
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
 
-            {heatZones.map((zone) => (
+            {wardsData.map((w) => (
               <CircleMarker
-                key={zone.ward}
-                center={[zone.lat, zone.lng]}
-                radius={28}
+                key={`${layer}-${w.ward}`}
+                center={[w.lat, w.lng]}
+                radius={
+                  layer === "population"
+                    ? Math.max(24, w.population / 700)
+                    : 30
+                }
                 pathOptions={{
-                  color: getRiskColor(zone.risk),
-                  fillColor: getRiskColor(zone.risk),
-                  fillOpacity: 0.35,
+                  color: color(w),
+                  fillColor: color(w),
+                  fillOpacity: 0.42,
                   weight: 2,
                 }}
               >
                 <Popup>
                   <div className="map-popup">
-                    <strong>Ward {zone.ward}</strong>
+                    <strong>Ward {w.ward}</strong>
 
-                    <div className="popup-risk">{zone.risk} Risk</div>
+                    <div
+                      className="popup-risk"
+                      style={{ color: color(w) }}
+                    >
+                      {value(w)}
+                    </div>
 
                     <div className="popup-row">
                       <span>Temperature</span>
-
-                      <b>{zone.temperature}°C</b>
+                      <b>{w.temperature}°C</b>
                     </div>
 
                     <div className="popup-row">
                       <span>WBGT</span>
-
-                      <b>{zone.wbgt}</b>
+                      <b>{w.wbgt}°C</b>
                     </div>
 
                     <div className="popup-row">
-                      <span>Population at risk</span>
-
-                      <b>{zone.population}</b>
+                      <span>Population</span>
+                      <b>{formatK(w.population)}</b>
                     </div>
                   </div>
                 </Popup>
               </CircleMarker>
             ))}
           </MapContainer>
-
-          {/* LEGEND */}
-
-          <div className="map-legend">
-            <strong>THERMAL RISK</strong>
-
-            <div>
-              <i className="legend-extreme" />
-              Extreme
-            </div>
-
-            <div>
-              <i className="legend-very-high" />
-              Very High
-            </div>
-
-            <div>
-              <i className="legend-high" />
-              High
-            </div>
-
-            <div>
-              <i className="legend-moderate" />
-              Moderate
-            </div>
-          </div>
         </div>
-
-        {/* SIDE PANEL */}
 
         <div className="map-side-panel">
           <div className="side-title">
             <div>
-              <h2>Risk Hotspots</h2>
+              <h2>
+                {layer === "risk"
+                  ? "Risk Hotspots"
+                  : layer === "temperature"
+                    ? "Hottest Wards"
+                    : layer === "wbgt"
+                      ? "Highest WBGT Zones"
+                      : "Population Exposure"}
+              </h2>
 
-              <p>Highest thermal stress zones</p>
+              <p>
+                Ranked by current{" "}
+                {layer === "risk" ? "thermal risk" : layer}
+              </p>
             </div>
 
             <span>5 zones</span>
           </div>
 
           <div className="hotspot-list">
-            {heatZones.map((zone, index) => (
-              <div className="hotspot" key={zone.ward}>
-                <div className="hotspot-rank">0{index + 1}</div>
+            {sorted.map((w, i) => (
+              <div className="hotspot" key={w.ward}>
+                <div className="hotspot-rank">
+                  {String(i + 1).padStart(2, "0")}
+                </div>
 
                 <div className="hotspot-main">
-                  <strong>Ward {zone.ward}</strong>
+                  <strong>Ward {w.ward}</strong>
 
                   <div>
-                    <span>{zone.temperature}°C</span>
+                    <span style={{ color: color(w) }}>
+                      {value(w)}
+                    </span>
 
-                    <small>WBGT {zone.wbgt}</small>
+                    <small>WBGT {w.wbgt}</small>
                   </div>
                 </div>
 
-                <RiskBadge risk={zone.risk} />
+                {layer === "risk" && (
+                  <RiskBadge risk={w.risk} />
+                )}
               </div>
             ))}
           </div>
 
-          {/* SUMMARY */}
-
           <div className="map-summary">
             <div>
               <span>HIGHEST TEMP</span>
-
               <strong>44°C</strong>
             </div>
 
             <div>
               <span>AVG WBGT</span>
-
               <strong>30.6</strong>
             </div>
 
             <div>
               <span>AT RISK</span>
-
               <strong>85.3K</strong>
             </div>
           </div>
 
-          <button className="cooling-map-button">
+          <button
+            className="cooling-map-button"
+            onClick={() => navigate("AI Cooling Plan")}
+          >
             <Zap size={16} />
             Generate Cooling Plan
             <ChevronRight size={15} />
           </button>
         </div>
       </div>
-
-      {/* ANALYSIS */}
-
-      <div className="map-analysis">
-        <div className="analysis-card">
-          <div className="analysis-icon">
-            <Thermometer size={18} />
-          </div>
-
-          <div>
-            <span>THERMAL HOTSPOT</span>
-
-            <strong>Ward 12</strong>
-
-            <p>44°C · Extreme thermal stress</p>
-          </div>
-        </div>
-
-        <div className="analysis-card">
-          <div className="analysis-icon">
-            <Users size={18} />
-          </div>
-
-          <div>
-            <span>VULNERABLE POPULATION</span>
-
-            <strong>85.3K people</strong>
-
-            <p>Located across identified high-risk wards</p>
-          </div>
-        </div>
-
-        <div className="analysis-card">
-          <div className="analysis-icon">
-            <TreePine size={18} />
-          </div>
-
-          <div>
-            <span>COOLING OPPORTUNITY</span>
-
-            <strong>12 wards</strong>
-
-            <p>Potential areas for intervention</p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
-function ForecastPage() {
-  const [forecastData, setForecastData] = useState<any[]>([]);
+
+/* =========================================================
+   FORECAST
+========================================================= */
+
+function ForecastPage({
+  navigate,
+}: {
+  navigate: (page: Page) => void;
+}) {
+  const [forecastData, setForecastData] = useState<any[]>(
+    []
+  );
+
   const [selectedDay, setSelectedDay] = useState(3);
 
   useEffect(() => {
@@ -930,6 +965,8 @@ function ForecastPage() {
       })
       .catch((error) => {
         console.error("Error fetching forecast:", error);
+
+        setForecastData(fallbackForecast);
       });
   }, []);
 
@@ -938,55 +975,18 @@ function ForecastPage() {
   if (!selected) {
     return <div>Loading forecast...</div>;
   }
+
   return (
     <div className="forecast-page">
-
-      {/* HEADER */}
-
-      <div className="module-header">
-
-        <div>
-
-          <div className="eyebrow">
-            <span />
-            AI HEAT FORECAST
-          </div>
-
-          <h1>
-            5-Day Heat Forecast
-          </h1>
-
-          <p>
-            Predicting what the heat will do to people,
-            not just what the temperature will be.
-          </p>
-
-        </div>
-
-        <div className="forecast-confidence">
-
-          <span>
-            FORECAST CONFIDENCE
-          </span>
-
-          <strong>
-            91%
-          </strong>
-
-          <small>
-            Updated 18:30
-          </small>
-
-        </div>
-
-      </div>
-
-      {/* FORECAST CARDS */}
+      <ModuleHeader
+        eyebrow="AI HEAT FORECAST"
+        title="5-Day Heat Forecast"
+        text="Predicting what the heat will do to people, not just what the temperature will be."
+        right="91% confidence"
+      />
 
       <div className="forecast-days">
-
         {forecastData.map((item, index) => (
-
           <button
             key={item.day}
             className={
@@ -996,303 +996,163 @@ function ForecastPage() {
             }
             onClick={() => setSelectedDay(index)}
           >
+            <span>{item.day}</span>
 
-            <span>
-              {item.day}
-            </span>
-
-            <small>
-              {item.date}
-            </small>
+            <small>{item.date}</small>
 
             <CloudSun size={26} />
 
-            <strong>
-              {item.temp}°C
-            </strong>
+            <strong>{item.temp}°C</strong>
 
-            <em>
-              Feels {item.feels}°
-            </em>
+            <em>Feels {item.feels}°</em>
 
             <RiskBadge risk={item.risk} />
-
           </button>
-
         ))}
-
       </div>
 
-      {/* MAIN FORECAST */}
-
       <div className="forecast-main-grid">
-
-        {/* LEFT */}
-
         <div className="panel forecast-detail">
-
           <PanelHeader
             title={`${selected.day}, ${selected.date}`}
             subtitle="Environmental conditions"
           />
 
           <div className="weather-metrics">
+            <WeatherMetric
+              icon={<Thermometer size={19} />}
+              name="Temperature"
+              value={`${selected.temp}°C`}
+              sub={`Feels like ${selected.feels}°C`}
+            />
 
-            <div className="weather-metric">
+            <WeatherMetric
+              icon={<Droplets size={19} />}
+              name="Humidity"
+              value={`${selected.humidity}%`}
+              sub="Relative humidity"
+            />
 
-              <Thermometer size={19} />
+            <WeatherMetric
+              icon={<Wind size={19} />}
+              name="Wind Speed"
+              value={`${selected.wind} km/h`}
+              sub="Average wind"
+            />
 
-              <span>
-                TEMPERATURE
-              </span>
-
-              <strong>
-                {selected.temp}°C
-              </strong>
-
-              <small>
-                Feels like {selected.feels}°C
-              </small>
-
-            </div>
-
-            <div className="weather-metric">
-
-              <Droplets size={19} />
-
-              <span>
-                HUMIDITY
-              </span>
-
-              <strong>
-                {selected.humidity}%
-              </strong>
-
-              <small>
-                Relative humidity
-              </small>
-
-            </div>
-
-            <div className="weather-metric">
-
-              <Wind size={19} />
-
-              <span>
-                WIND SPEED
-              </span>
-
-              <strong>
-                {selected.wind} km/h
-              </strong>
-
-              <small>
-                Average wind
-              </small>
-
-            </div>
-
-            <div className="weather-metric">
-
-              <Zap size={19} />
-
-              <span>
-                SOLAR RADIATION
-              </span>
-
-              <strong>
-                {selected.radiation} kWh/m²
-              </strong>
-
-              <small>
-                Estimated daily exposure
-              </small>
-
-            </div>
-
+            <WeatherMetric
+              icon={<Zap size={19} />}
+              name="Solar Radiation"
+              value={`${selected.radiation}`}
+              sub="kWh/m² daily exposure"
+            />
           </div>
 
-          {/* THERMAL INDICES */}
-
           <div className="thermal-index-title">
-
             <div>
-
-              <h3>
-                Human Thermal Stress
-              </h3>
-
+              <h3>Human Thermal Stress</h3>
               <p>
                 Advanced heat indices used by ThermoShield
               </p>
-
             </div>
 
             <RiskBadge risk={selected.risk} />
-
           </div>
 
           <div className="thermal-index-grid">
+            <IndexCard
+              name="WBGT"
+              value={`${selected.wbgt}°C`}
+              desc="Wet Bulb Globe Temperature"
+              progress={Math.min(
+                selected.wbgt * 2.7,
+                100
+              )}
+            />
 
-            <div className="index-card">
-
-              <span>
-                WBGT
-              </span>
-
-              <strong>
-                {selected.wbgt}°C
-              </strong>
-
-              <small>
-                Wet Bulb Globe Temperature
-              </small>
-
-              <div className="index-bar">
-                <i
-                  style={{
-                    width: `${Math.min(
-                      selected.wbgt * 2.7,
-                      100
-                    )}%`,
-                  }}
-                />
-              </div>
-
-            </div>
-
-            <div className="index-card">
-
-              <span>
-                UTCI
-              </span>
-
-              <strong>
-                {selected.utci}°C
-              </strong>
-
-              <small>
-                Universal Thermal Climate Index
-              </small>
-
-              <div className="index-bar">
-                <i
-                  style={{
-                    width: `${Math.min(
-                      selected.utci * 2.1,
-                      100
-                    )}%`,
-                  }}
-                />
-              </div>
-
-            </div>
-
+            <IndexCard
+              name="UTCI"
+              value={`${selected.utci}°C`}
+              desc="Universal Thermal Climate Index"
+              progress={Math.min(
+                selected.utci * 2.1,
+                100
+              )}
+            />
           </div>
-
         </div>
 
-        {/* RIGHT */}
-
         <div className="panel peak-panel">
-
-          <div className="peak-label">
-            PEAK HEAT DAY
-          </div>
+          <div className="peak-label">PEAK HEAT DAY</div>
 
           <div className="peak-icon">
             <Thermometer size={25} />
           </div>
 
-          <h2>
-            Wednesday
-          </h2>
+          <h2>Wednesday</h2>
 
           <strong className="peak-temperature">
             44°C
           </strong>
 
           <p>
-            Expected to be the most dangerous heat
-            period during the next 5 days.
+            Expected to be the most dangerous heat period
+            during the next 5 days.
           </p>
 
           <div className="peak-risk">
-
-            <span>
-              HUMAN THERMAL RISK
-            </span>
-
-            <b>
-              EXTREME
-            </b>
-
+            <span>HUMAN THERMAL RISK</span>
+            <b>EXTREME</b>
           </div>
 
           <div className="peak-recommendation">
-
             <Zap size={16} />
 
             <span>
-              Cooling interventions should be
-              prioritized before Wednesday.
+              Cooling interventions should be prioritized
+              before Wednesday.
             </span>
-
           </div>
-
         </div>
-
       </div>
 
-      {/* AI INTERPRETATION */}
-
       <div className="forecast-ai">
-
         <div className="forecast-ai-icon">
           <Activity size={21} />
         </div>
 
         <div>
-
-          <span>
-            THERMOSHIELD AI INTERPRETATION
-          </span>
+          <span>THERMOSHIELD AI INTERPRETATION</span>
 
           <h2>
-            Heat risk is expected to increase
-            sharply by Wednesday.
+            Heat risk is expected to increase sharply by
+            Wednesday.
           </h2>
 
           <p>
-            High temperature combined with increasing
-            humidity and low wind speed may create
-            dangerous thermal stress. Vulnerable
-            populations and outdoor workers should be
-            prioritized for preventive action.
+            High temperature combined with increasing humidity
+            and low wind speed may create dangerous thermal
+            stress. Vulnerable populations and outdoor workers
+            should be prioritized.
           </p>
-
         </div>
 
-        <button>
+        <button onClick={() => navigate("Risk Analysis")}>
           View Risk Analysis
           <ChevronRight size={15} />
         </button>
-
       </div>
 
       {/* 5 DAY TABLE */}
 
       <div className="panel forecast-table-panel">
-
         <PanelHeader
           title="Forecast Summary"
           subtitle="Environmental and human thermal indicators"
         />
 
         <div className="forecast-table">
-
           <div className="forecast-table-head">
-
             <span>DAY</span>
             <span>TEMP</span>
             <span>HUMIDITY</span>
@@ -1300,56 +1160,632 @@ function ForecastPage() {
             <span>WBGT</span>
             <span>UTCI</span>
             <span>RISK</span>
-
           </div>
 
           {forecastData.map((item) => (
-
             <div
               className="forecast-table-row"
               key={item.day}
             >
+              <strong>{item.day}</strong>
 
-              <strong>
-                {item.day}
-              </strong>
+              <span>{item.temp}°C</span>
 
-              <span>
-                {item.temp}°C
-              </span>
+              <span>{item.humidity}%</span>
 
-              <span>
-                {item.humidity}%
-              </span>
+              <span>{item.wind} km/h</span>
 
-              <span>
-                {item.wind} km/h
-              </span>
+              <span>{item.wbgt}°C</span>
 
-              <span>
-                {item.wbgt}°C
-              </span>
-
-              <span>
-                {item.utci}°C
-              </span>
+              <span>{item.utci}°C</span>
 
               <RiskBadge risk={item.risk} />
-
             </div>
-
           ))}
-
         </div>
-
       </div>
-
     </div>
   );
 }
+
 /* =========================================================
-   REUSABLE COMPONENTS
+   RISK ANALYSIS
 ========================================================= */
+
+function RiskAnalysisPage({
+  navigate,
+}: {
+  navigate: (page: Page) => void;
+}) {
+  const [selectedWard, setSelectedWard] = useState(12);
+  const [wardsData, setWardsData] = useState<Ward[]>([]);
+
+  useEffect(() => {
+    fetch("http://localhost:5000/api/wards")
+      .then((response) => response.json())
+      .then((data) => {
+        setWardsData(data);
+      })
+      .catch((error) => {
+        console.error("Error fetching wards:", error);
+      });
+  }, []);
+
+  const ward =
+    wardsData.find((w) => w.ward === selectedWard) ??
+    wardsData[0];
+
+  if (!ward) {
+    return <div>Loading risk analysis...</div>;
+  }
+
+  const stress = Math.min(
+    100,
+    Math.round(
+      ward.temperature * 1.25 +
+      ward.humidity * 0.28 +
+      (20 - Math.min(20, ward.wind)) * 0.8 +
+      ward.radiation * 1.8
+    )
+  );
+
+  const mortalityRisk = Math.min(
+    100,
+    Math.round(
+      stress * 0.72 +
+      (ward.population / 1000) * 0.25
+    )
+  );
+
+  return (
+    <div className="risk-analysis-page">
+      <ModuleHeader
+        eyebrow="HUMAN IMPACT ANALYSIS"
+        title="Risk Analysis"
+        text="Understand why a ward is dangerous and which population groups need priority protection."
+        right="Prototype model"
+      />
+
+      <div className="risk-selector panel">
+        <div>
+          <span>SELECT WARD</span>
+
+          <strong>Ward {ward.ward}</strong>
+
+          <small>
+            Click a ward to inspect its risk profile.
+          </small>
+        </div>
+
+        <div className="ward-selector">
+          {wardsData.map((w) => (
+            <button
+              key={w.ward}
+              className={
+                selectedWard === w.ward
+                  ? "selected"
+                  : ""
+              }
+              onClick={() => setSelectedWard(w.ward)}
+            >
+              Ward {w.ward}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="risk-overview-grid">
+        <div className="panel risk-score-card">
+          <span>HUMAN THERMAL STRESS</span>
+
+          <strong>{stress}</strong>
+
+          <small>/ 100</small>
+
+          <RiskBadge risk={ward.risk} />
+
+          <p>
+            Combined effect of temperature, humidity, wind
+            and solar exposure.
+          </p>
+        </div>
+
+        <div className="panel risk-score-card">
+          <span>PROJECTED MORTALITY RISK</span>
+
+          <strong>{mortalityRisk}%</strong>
+
+          <small>relative risk score</small>
+
+          <RiskBadge
+            risk={
+              mortalityRisk >= 75
+                ? "Extreme"
+                : mortalityRisk >= 60
+                  ? "Very High"
+                  : mortalityRisk >= 40
+                    ? "High"
+                    : "Moderate"
+            }
+          />
+
+          <p>
+            Prototype indicator for prioritising preventive
+            action.
+          </p>
+        </div>
+
+        <div className="panel risk-score-card">
+          <span>POPULATION EXPOSED</span>
+
+          <strong>{formatK(ward.population)}</strong>
+
+          <small>people</small>
+
+          <Users size={22} />
+
+          <p>
+            Residents within the selected high-risk ward.
+          </p>
+        </div>
+      </div>
+
+      <div className="two-column">
+        <div className="panel">
+          <PanelHeader
+            title="Risk Factors"
+            subtitle={`Ward ${ward.ward} environmental profile`}
+          />
+
+          <RiskFactor
+            icon={<Thermometer size={15} />}
+            name="Temperature"
+            value={`${ward.temperature}°C`}
+            progress={(ward.temperature / 45) * 100}
+          />
+
+          <RiskFactor
+            icon={<Droplets size={15} />}
+            name="Humidity"
+            value={`${ward.humidity}%`}
+            progress={ward.humidity}
+          />
+
+          <RiskFactor
+            icon={<Wind size={15} />}
+            name="Wind Speed"
+            value={`${ward.wind} km/h`}
+            progress={Math.max(
+              5,
+              100 - ward.wind * 5
+            )}
+          />
+
+          <RiskFactor
+            icon={<Zap size={15} />}
+            name="Solar Radiation"
+            value={`${ward.radiation} kWh/m²`}
+            progress={(ward.radiation / 10) * 100}
+          />
+        </div>
+
+        <div className="panel">
+          <PanelHeader
+            title="Human Thermal Indices"
+            subtitle="Indicators used for heat-health assessment"
+          />
+
+          <div className="analysis-metric">
+            <span>WBGT</span>
+            <strong>{ward.wbgt}°C</strong>
+            <small>
+              Wet Bulb Globe Temperature
+            </small>
+          </div>
+
+          <div className="analysis-metric">
+            <span>UTCI</span>
+            <strong>{ward.utci}°C</strong>
+            <small>
+              Universal Thermal Climate Index
+            </small>
+          </div>
+
+          <div className="analysis-metric">
+            <span>Heat Index</span>
+
+            <strong>
+              {Math.round(
+                ward.temperature +
+                (ward.humidity - 40) * 0.12
+              )}
+              °C
+            </strong>
+
+            <small>
+              Temperature + humidity effect
+            </small>
+          </div>
+        </div>
+      </div>
+
+      <div className="panel action-panel">
+        <div>
+          <span>RECOMMENDED RESPONSE</span>
+
+          <h2>
+            Protect Ward {ward.ward} before peak heat.
+          </h2>
+
+          <p>
+            Prioritise cooling centres, outdoor-worker
+            timing changes, hydration messaging and targeted
+            SMS/WhatsApp alerts for vulnerable populations.
+          </p>
+        </div>
+
+        <button
+          onClick={() => navigate("AI Cooling Plan")}
+        >
+          Generate Cooling Plan
+          <ChevronRight size={16} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   AI COOLING PLAN
+========================================================= */
+
+function CoolingPlanPage({
+  navigate,
+}: {
+  navigate: (page: Page) => void;
+}) {
+  const [budget, setBudget] = useState(50);
+
+  const total = budget;
+
+  const plan = [
+    [
+      "Cool roofs",
+      Math.round(total * 0.34),
+      "High-risk dense residential zones",
+    ],
+    [
+      "Urban trees",
+      Math.round(total * 0.26),
+      "Low vegetation wards",
+    ],
+    [
+      "Reflective roads",
+      Math.round(total * 0.18),
+      "High surface-temperature corridors",
+    ],
+    [
+      "Cooling centres",
+      Math.round(total * 0.14),
+      "High population exposure areas",
+    ],
+    [
+      "Green corridors",
+      Math.round(total * 0.08),
+      "Heat connectivity zones",
+    ],
+  ];
+
+  return (
+    <div className="cooling-page">
+      <ModuleHeader
+        eyebrow="AI DECISION SUPPORT"
+        title="AI Cooling Plan"
+        text="Enter the available budget. The prototype automatically distributes investment toward the highest cooling impact."
+        right="Optimization ready"
+      />
+
+      <div className="budget-panel panel">
+        <div>
+          <span>AVAILABLE BUDGET</span>
+
+          <strong>₹{budget} Cr</strong>
+
+          <p>
+            Change the budget to see the recommended
+            allocation update.
+          </p>
+        </div>
+
+        <input
+          type="range"
+          min="5"
+          max="100"
+          value={budget}
+          onChange={(e) =>
+            setBudget(Number(e.target.value))
+          }
+        />
+
+        <div className="budget-labels">
+          <span>₹5 Cr</span>
+          <span>₹100 Cr</span>
+        </div>
+      </div>
+
+      <div className="two-column">
+        <div className="panel">
+          <PanelHeader
+            title="Recommended Allocation"
+            subtitle="Prototype optimization output"
+          />
+
+          {plan.map(([name, cost, area]) => (
+            <div className="plan-row" key={name}>
+              <div>
+                <strong>{name}</strong>
+                <small>{area}</small>
+              </div>
+
+              <b>₹{cost} Cr</b>
+            </div>
+          ))}
+        </div>
+
+        <div className="panel impact-panel">
+          <span>ESTIMATED IMPACT</span>
+
+          <strong>3.8°C</strong>
+
+          <small>potential local cooling</small>
+
+          <div className="impact-stat">
+            <Users size={18} />
+            <b>118K</b>
+            <span>people potentially benefited</span>
+          </div>
+
+          <div className="impact-stat">
+            <TreePine size={18} />
+            <b>12</b>
+            <span>priority wards</span>
+          </div>
+
+          <button
+            onClick={() => navigate("Digital Twin")}
+          >
+            Test in Digital Twin
+            <ChevronRight size={15} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   DIGITAL TWIN
+========================================================= */
+
+function DigitalTwinPage({
+  navigate,
+}: {
+  navigate: (page: Page) => void;
+}) {
+  const [cooling, setCooling] = useState(0);
+
+  return (
+    <div className="twin-page">
+      <ModuleHeader
+        eyebrow="SCENARIO SIMULATION"
+        title="Digital Twin"
+        text="Simulate urban cooling interventions before authorities deploy them."
+        right="Simulation mode"
+      />
+
+      <div className="panel twin-control">
+        <div>
+          <span>SIMULATED COOLING INTERVENTION</span>
+
+          <h2>Increase green coverage</h2>
+
+          <p>
+            Move the slider to simulate additional vegetation
+            in high-risk areas.
+          </p>
+        </div>
+
+        <input
+          type="range"
+          min="0"
+          max="100"
+          value={cooling}
+          onChange={(e) =>
+            setCooling(Number(e.target.value))
+          }
+        />
+
+        <strong>{cooling}%</strong>
+      </div>
+
+      <div className="risk-overview-grid">
+        <div className="panel impact-box">
+          <span>TEMPERATURE CHANGE</span>
+
+          <strong>
+            -{(cooling * 0.025).toFixed(1)}°C
+          </strong>
+
+          <small>estimated</small>
+        </div>
+
+        <div className="panel impact-box">
+          <span>WBGT CHANGE</span>
+
+          <strong>
+            -{(cooling * 0.018).toFixed(1)}°C
+          </strong>
+
+          <small>estimated</small>
+        </div>
+
+        <div className="panel impact-box">
+          <span>PEOPLE BENEFITED</span>
+
+          <strong>
+            {Math.round(cooling * 1.25)}K
+          </strong>
+
+          <small>estimated</small>
+        </div>
+      </div>
+
+      <div className="action-panel panel">
+        <div>
+          <span>READY TO APPLY?</span>
+
+          <h2>
+            Use this scenario in the AI Cooling Plan.
+          </h2>
+
+          <p>
+            The actual backend can later replace these
+            prototype estimates with model-based simulation.
+          </p>
+        </div>
+
+        <button
+          onClick={() => navigate("AI Cooling Plan")}
+        >
+          Open Cooling Plan
+          <ChevronRight size={16} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   ALERTS
+========================================================= */
+
+function AlertsPage() {
+  const alerts = [
+    [
+      "Extreme heat warning",
+      "Ward 12 · 44°C · WBGT 32.8",
+      "SMS + WhatsApp",
+      "Extreme",
+    ],
+    [
+      "High thermal stress",
+      "Ward 19 · 43°C · WBGT 31.6",
+      "Municipality dashboard",
+      "Very High",
+    ],
+    [
+      "Outdoor worker advisory",
+      "Bhubaneswar · 12:00–16:00",
+      "SMS",
+      "High",
+    ],
+    [
+      "Cooling centre trigger",
+      "5 wards crossed threshold",
+      "Municipality",
+      "High",
+    ],
+  ];
+
+  return (
+    <div className="alerts-page">
+      <ModuleHeader
+        eyebrow="PUBLIC HEALTH ALERTING"
+        title="Alerts"
+        text="Targeted heat advisories for residents, outdoor workers and city authorities."
+        right="7 active"
+      />
+
+      <div className="alert-summary">
+        <div className="panel">
+          <Smartphone size={20} />
+          <strong>SMS</strong>
+          <span>Regional alerts ready</span>
+        </div>
+
+        <div className="panel">
+          <MessageSquare size={20} />
+          <strong>WhatsApp</strong>
+          <span>Automated advisory channel</span>
+        </div>
+
+        <div className="panel">
+          <Building2 size={20} />
+          <strong>Authorities</strong>
+          <span>Heat action triggers</span>
+        </div>
+      </div>
+
+      <div className="panel">
+        <PanelHeader
+          title="Active Alert Queue"
+          subtitle="Prototype notification events"
+        />
+
+        {alerts.map((a) => (
+          <div className="alert-row" key={a[0]}>
+            <CircleAlert size={20} />
+
+            <div>
+              <strong>{a[0]}</strong>
+              <p>{a[1]}</p>
+            </div>
+
+            <span>{a[2]}</span>
+
+            <RiskBadge risk={a[3] as Risk} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   COMPONENTS
+========================================================= */
+
+function ModuleHeader({
+  eyebrow,
+  title,
+  text,
+  right,
+}: {
+  eyebrow: string;
+  title: string;
+  text: string;
+  right: string;
+}) {
+  return (
+    <div className="module-header">
+      <div>
+        <div className="eyebrow">
+          <span />
+          {eyebrow}
+        </div>
+
+        <h1>{title}</h1>
+
+        <p>{text}</p>
+      </div>
+
+      <div className="forecast-confidence">
+        <span>STATUS</span>
+        <strong>{right}</strong>
+      </div>
+    </div>
+  );
+}
 
 function NavItem({
   icon,
@@ -1365,7 +1801,10 @@ function NavItem({
   badge?: string;
 }) {
   return (
-    <button className={`nav-item ${active ? 'active' : ''}`} onClick={onClick}>
+    <button
+      className={`nav-item ${active ? "active" : ""}`}
+      onClick={onClick}
+    >
       {icon}
 
       <span>{label}</span>
@@ -1393,9 +1832,18 @@ function Stat({
   return (
     <div className="stat">
       <div className="stat-top">
-        <div className={danger ? 'stat-icon danger' : 'stat-icon'}>{icon}</div>
+        <div
+          className={`stat-icon ${danger ? "danger" : ""
+            }`}
+        >
+          {icon}
+        </div>
 
-        <span className={danger ? 'danger-label' : ''}>{label}</span>
+        <span
+          className={danger ? "danger-label" : ""}
+        >
+          {label}
+        </span>
       </div>
 
       <p>{title}</p>
@@ -1420,16 +1868,14 @@ function PanelHeader({
     <div className="panel-header">
       <div>
         <h2>{title}</h2>
-
         <p>{subtitle}</p>
       </div>
 
       {action && (
-        <button className="panel-action">
+        <span className="panel-action">
           {action}
-
           <ChevronRight size={14} />
-        </button>
+        </span>
       )}
     </div>
   );
@@ -1451,7 +1897,6 @@ function RiskFactor({
       <div>
         <span>
           {icon}
-
           {name}
         </span>
 
@@ -1461,7 +1906,10 @@ function RiskFactor({
       <div className="progress">
         <i
           style={{
-            width: `${progress}%`,
+            width: `${Math.max(
+              0,
+              Math.min(100, progress)
+            )}%`,
           }}
         />
       </div>
@@ -1469,10 +1917,16 @@ function RiskFactor({
   );
 }
 
-function RiskBadge({ risk }: { risk: string }) {
-  const className = risk.toLowerCase().replace(' ', '-');
-
-  return <span className={`risk-badge ${className}`}>{risk}</span>;
+function RiskBadge({ risk }: { risk: Risk }) {
+  return (
+    <span
+      className={`risk-badge ${risk
+        .toLowerCase()
+        .replace(" ", "-")}`}
+    >
+      {risk}
+    </span>
+  );
 }
 
 function Insight({
@@ -1480,11 +1934,13 @@ function Insight({
   title,
   description,
   action,
+  onClick,
 }: {
   icon: React.ReactNode;
   title: string;
   description: string;
   action: string;
+  onClick: () => void;
 }) {
   return (
     <div className="insight">
@@ -1495,9 +1951,8 @@ function Insight({
 
         <p>{description}</p>
 
-        <button>
+        <button onClick={onClick}>
           {action}
-
           <ChevronRight size={13} />
         </button>
       </div>
@@ -1505,27 +1960,62 @@ function Insight({
   );
 }
 
-/* =========================================================
-   OTHER MODULE PLACEHOLDER
-========================================================= */
-
-function Placeholder({ page }: { page: Page }) {
+function WeatherMetric({
+  icon,
+  name,
+  value,
+  sub,
+}: {
+  icon: React.ReactNode;
+  name: string;
+  value: string;
+  sub: string;
+}) {
   return (
-    <div className="placeholder">
-      <div>
-        <Zap size={28} />
-      </div>
+    <div className="weather-metric">
+      {icon}
 
-      <small>THERMOSHIELD MODULE</small>
+      <span>{name}</span>
 
-      <h1>{page}</h1>
+      <strong>{value}</strong>
 
-      <p>
-        This module will be connected to the ThermoShield AI backend and live
-        data pipeline.
-      </p>
+      <small>{sub}</small>
     </div>
   );
+}
+
+function IndexCard({
+  name,
+  value,
+  desc,
+  progress,
+}: {
+  name: string;
+  value: string;
+  desc: string;
+  progress: number;
+}) {
+  return (
+    <div className="index-card">
+      <span>{name}</span>
+
+      <strong>{value}</strong>
+
+      <small>{desc}</small>
+
+      <div className="index-bar">
+        <i
+          style={{
+            width: `${progress}%`,
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function formatK(value: number) {
+  return `${(value / 1000).toFixed(1)}K`;
 }
 
 export default App;
