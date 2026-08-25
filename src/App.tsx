@@ -2,30 +2,33 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Activity,
   Bell,
+  Building2,
+  CheckCircle2,
   ChevronRight,
+  CircleAlert,
   CloudSun,
   Droplets,
   LayoutDashboard,
+  Loader2,
   Map as MapIcon,
   Menu,
   MessageSquare,
   ShieldAlert,
+  Smartphone,
   Thermometer,
   TreePine,
+  TriangleAlert,
   Users,
   Wind,
   X,
   Zap,
-  Smartphone,
-  Building2,
-  CircleAlert,
 } from "lucide-react";
 
 import {
-  MapContainer,
-  TileLayer,
   CircleMarker,
+  MapContainer,
   Popup,
+  TileLayer,
 } from "react-leaflet";
 
 import "leaflet/dist/leaflet.css";
@@ -223,8 +226,6 @@ function App() {
 
   return (
     <div className="app-shell">
-      {/* SIDEBAR */}
-
       <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
         <div className="brand">
           <div className="brand-logo">
@@ -315,8 +316,6 @@ function App() {
           </div>
         </div>
       </aside>
-
-      {/* MAIN */}
 
       <main className={sidebarOpen ? "main shifted" : "main"}>
         <header className="topbar">
@@ -1064,20 +1063,14 @@ function ForecastPage({
               name="WBGT"
               value={`${selected.wbgt}°C`}
               desc="Wet Bulb Globe Temperature"
-              progress={Math.min(
-                selected.wbgt * 2.7,
-                100
-              )}
+              progress={Math.min(selected.wbgt * 2.7, 100)}
             />
 
             <IndexCard
               name="UTCI"
               value={`${selected.utci}°C`}
               desc="Universal Thermal Climate Index"
-              progress={Math.min(
-                selected.utci * 2.1,
-                100
-              )}
+              progress={Math.min(selected.utci * 2.1, 100)}
             />
           </div>
         </div>
@@ -1218,6 +1211,7 @@ function RiskAnalysisPage({
   if (!ward) {
     return <div>Loading risk analysis...</div>;
   }
+    wards.find((w) => w.ward === selectedWard) ?? wards[0];
 
   const stress = Math.min(
     100,
@@ -1262,9 +1256,7 @@ function RiskAnalysisPage({
             <button
               key={w.ward}
               className={
-                selectedWard === w.ward
-                  ? "selected"
-                  : ""
+                selectedWard === w.ward ? "selected" : ""
               }
               onClick={() => setSelectedWard(w.ward)}
             >
@@ -1355,10 +1347,7 @@ function RiskAnalysisPage({
             icon={<Wind size={15} />}
             name="Wind Speed"
             value={`${ward.wind} km/h`}
-            progress={Math.max(
-              5,
-              100 - ward.wind * 5
-            )}
+            progress={Math.max(5, 100 - ward.wind * 5)}
           />
 
           <RiskFactor
@@ -1378,17 +1367,13 @@ function RiskAnalysisPage({
           <div className="analysis-metric">
             <span>WBGT</span>
             <strong>{ward.wbgt}°C</strong>
-            <small>
-              Wet Bulb Globe Temperature
-            </small>
+            <small>Wet Bulb Globe Temperature</small>
           </div>
 
           <div className="analysis-metric">
             <span>UTCI</span>
             <strong>{ward.utci}°C</strong>
-            <small>
-              Universal Thermal Climate Index
-            </small>
+            <small>Universal Thermal Climate Index</small>
           </div>
 
           <div className="analysis-metric">
@@ -1402,9 +1387,7 @@ function RiskAnalysisPage({
               °C
             </strong>
 
-            <small>
-              Temperature + humidity effect
-            </small>
+            <small>Temperature + humidity effect</small>
           </div>
         </div>
       </div>
@@ -1551,9 +1534,7 @@ function CoolingPlanPage({
             <span>priority wards</span>
           </div>
 
-          <button
-            onClick={() => navigate("Digital Twin")}
-          >
+          <button onClick={() => navigate("Digital Twin")}>
             Test in Digital Twin
             <ChevronRight size={15} />
           </button>
@@ -1666,86 +1647,395 @@ function DigitalTwinPage({
 }
 
 /* =========================================================
-   ALERTS
+   AUTOMATIC ALERTS
 ========================================================= */
 
 function AlertsPage() {
-  const alerts = [
-    [
-      "Extreme heat warning",
-      "Ward 12 · 44°C · WBGT 32.8",
-      "SMS + WhatsApp",
-      "Extreme",
-    ],
-    [
-      "High thermal stress",
-      "Ward 19 · 43°C · WBGT 31.6",
-      "Municipality dashboard",
-      "Very High",
-    ],
-    [
-      "Outdoor worker advisory",
-      "Bhubaneswar · 12:00–16:00",
-      "SMS",
-      "High",
-    ],
-    [
-      "Cooling centre trigger",
-      "5 wards crossed threshold",
-      "Municipality",
-      "High",
-    ],
-  ];
+  const [alertStatus, setAlertStatus] = useState<
+    "monitoring" | "generating" | "sent"
+  >("monitoring");
+
+  const [selectedAlert, setSelectedAlert] =
+    useState<Ward | null>(null);
+
+  /*
+    In the real system these values will come from the
+    backend thermal-risk engine.
+
+    For the SIH prototype, Ward 12 is already at
+    EXTREME risk, so the automatic alert workflow
+    is demonstrated without a manual Send button.
+  */
+
+  const extremeAlerts = wards.filter(
+    (ward) => ward.risk === "Extreme"
+  );
+
+  useEffect(() => {
+    const extremeWard = extremeAlerts[0];
+
+    if (!extremeWard) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setSelectedAlert(extremeWard);
+      setAlertStatus("generating");
+
+      setTimeout(() => {
+        setAlertStatus("sent");
+      }, 1800);
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  const generateMessage = (ward: Ward) => {
+    if (ward.risk === "Extreme") {
+      return `Extreme heat conditions detected in Ward ${ward.ward}. Temperature ${ward.temperature}°C and WBGT ${ward.wbgt}°C. Avoid outdoor activity between 12 PM and 4 PM. Stay hydrated and use nearby cooling centres.`;
+    }
+
+    if (ward.risk === "Very High") {
+      return `Very high heat stress detected in Ward ${ward.ward}. Reduce prolonged outdoor exposure, stay hydrated and follow local heat-safety advisories.`;
+    }
+
+    if (ward.risk === "High") {
+      return `High heat risk detected in Ward ${ward.ward}. Residents are advised to remain hydrated and avoid unnecessary outdoor activity.`;
+    }
+
+    return `Heat conditions are being monitored in Ward ${ward.ward}.`;
+  };
 
   return (
     <div className="alerts-page">
       <ModuleHeader
-        eyebrow="PUBLIC HEALTH ALERTING"
-        title="Alerts"
-        text="Targeted heat advisories for residents, outdoor workers and city authorities."
-        right="7 active"
+        eyebrow="AUTOMATED PUBLIC HEALTH ALERTING"
+        title="Heat Alerts"
+        text="ThermoShield automatically generates and distributes location-specific heat warnings when risk thresholds are crossed."
+        right="Automatic engine active"
       />
 
-      <div className="alert-summary">
-        <div className="panel">
-          <Smartphone size={20} />
-          <strong>SMS</strong>
-          <span>Regional alerts ready</span>
+      {/* AUTOMATION STATUS */}
+
+      <div className="alert-system-card">
+        <div className="alert-system-icon">
+          <Zap size={21} />
         </div>
 
-        <div className="panel">
-          <MessageSquare size={20} />
-          <strong>WhatsApp</strong>
-          <span>Automated advisory channel</span>
+        <div className="alert-system-content">
+          <span>SYSTEM STATUS</span>
+
+          <h2>
+            {alertStatus === "monitoring" &&
+              "Monitoring thermal risk continuously"}
+
+            {alertStatus === "generating" &&
+              "Extreme heat risk detected"}
+
+            {alertStatus === "sent" &&
+              "Public health alerts distributed"}
+          </h2>
+
+          <p>
+            The system monitors ward-level thermal conditions
+            and automatically generates targeted alerts when
+            predefined risk thresholds are crossed.
+          </p>
         </div>
 
-        <div className="panel">
-          <Building2 size={20} />
-          <strong>Authorities</strong>
-          <span>Heat action triggers</span>
+        <div className="alert-system-badge">
+          {alertStatus === "monitoring" && (
+            <>
+              <span className="status-dot monitoring" />
+              Monitoring
+            </>
+          )}
+
+          {alertStatus === "generating" && (
+            <>
+              <span className="status-dot generating" />
+              Generating
+            </>
+          )}
+
+          {alertStatus === "sent" && (
+            <>
+              <span className="status-dot sent" />
+              Sent
+            </>
+          )}
         </div>
       </div>
 
-      <div className="panel">
+      {/* ALERT QUEUE + DISTRIBUTION */}
+
+      <div className="alerts-layout">
+        <div className="panel alert-queue">
+          <PanelHeader
+            title="Active Alert Queue"
+            subtitle="Automatically generated from current thermal-risk levels"
+          />
+
+          <div className="alert-list">
+            {wards
+              .filter((w) => w.risk !== "Moderate")
+              .map((ward) => (
+                <div
+                  className={`alert-item ${
+                    ward.risk === "Extreme"
+                      ? "alert-extreme"
+                      : ward.risk === "Very High"
+                      ? "alert-very-high"
+                      : "alert-high"
+                  }`}
+                  key={ward.ward}
+                >
+                  <div className="alert-item-icon">
+                    <TriangleAlert size={18} />
+                  </div>
+
+                  <div className="alert-item-main">
+                    <div className="alert-item-top">
+                      <div>
+                        <strong>
+                          {ward.risk === "Extreme"
+                            ? "Extreme heat warning"
+                            : `${ward.risk} heat warning`}
+                        </strong>
+
+                        <span>
+                          Ward {ward.ward} ·{" "}
+                          {ward.temperature}°C · WBGT{" "}
+                          {ward.wbgt}
+                        </span>
+                      </div>
+
+                      <RiskBadge risk={ward.risk} />
+                    </div>
+
+                    <div className="alert-values">
+                      <span>
+                        <Thermometer size={12} />
+                        {ward.temperature}°C
+                      </span>
+
+                      <span>
+                        WBGT {ward.wbgt}°C
+                      </span>
+
+                      <span>
+                        <Users size={12} />
+                        {formatK(ward.population)}
+                      </span>
+                    </div>
+
+                    <p>{generateMessage(ward)}</p>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+
+        {/* DISTRIBUTION */}
+
+        <div className="panel distribution-panel">
+          <PanelHeader
+            title="Automatic Distribution"
+            subtitle="Communication channels"
+          />
+
+          {selectedAlert ? (
+            <div className="selected-alert">
+              <div className="selected-alert-header">
+                <div>
+                  <span>TRIGGERED ALERT</span>
+
+                  <strong>
+                    Ward {selectedAlert.ward}
+                  </strong>
+                </div>
+
+                <RiskBadge risk={selectedAlert.risk} />
+              </div>
+
+              <div className="selected-alert-data">
+                <div>
+                  <span>Temperature</span>
+                  <strong>
+                    {selectedAlert.temperature}°C
+                  </strong>
+                </div>
+
+                <div>
+                  <span>WBGT</span>
+                  <strong>
+                    {selectedAlert.wbgt}°C
+                  </strong>
+                </div>
+              </div>
+
+              <div className="distribution-status">
+                <div className="distribution-channel">
+                  <Smartphone size={17} />
+
+                  <div>
+                    <strong>SMS</strong>
+
+                    <span>
+                      {alertStatus === "sent"
+                        ? "Automatically sent to residents"
+                        : "Preparing alert"}
+                    </span>
+                  </div>
+
+                  {alertStatus === "sent" && (
+                    <CheckCircle2 size={16} />
+                  )}
+                </div>
+
+                <div className="distribution-channel">
+                  <MessageSquare size={17} />
+
+                  <div>
+                    <strong>WhatsApp</strong>
+
+                    <span>
+                      {alertStatus === "sent"
+                        ? "Automatically distributed"
+                        : "Preparing alert"}
+                    </span>
+                  </div>
+
+                  {alertStatus === "sent" && (
+                    <CheckCircle2 size={16} />
+                  )}
+                </div>
+
+                <div className="distribution-channel">
+                  <Building2 size={17} />
+
+                  <div>
+                    <strong>Authorities</strong>
+
+                    <span>
+                      {alertStatus === "sent"
+                        ? "Municipal dashboard notified"
+                        : "Preparing notification"}
+                    </span>
+                  </div>
+
+                  {alertStatus === "sent" && (
+                    <CheckCircle2 size={16} />
+                  )}
+                </div>
+              </div>
+
+              {alertStatus === "generating" && (
+                <div className="alert-processing">
+                  <Loader2 size={15} className="spin" />
+
+                  AI is generating a localized advisory...
+                </div>
+              )}
+
+              {alertStatus === "sent" && (
+                <div className="alert-success">
+                  <CheckCircle2 size={16} />
+
+                  <div>
+                    <strong>
+                      Alert distributed successfully
+                    </strong>
+
+                    <span>
+                      SMS, WhatsApp and authority notification
+                      triggered automatically.
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="waiting-alert">
+              <Zap size={24} />
+
+              <strong>
+                Monitoring for threshold breach
+              </strong>
+
+              <p>
+                When a ward reaches Extreme risk,
+                ThermoShield automatically generates and
+                distributes an alert.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* WORKFLOW */}
+
+      <div className="panel alert-workflow">
         <PanelHeader
-          title="Active Alert Queue"
-          subtitle="Prototype notification events"
+          title="Automatic Alert Workflow"
+          subtitle="How ThermoShield converts heat risk into action"
         />
 
-        {alerts.map((a) => (
-          <div className="alert-row" key={a[0]}>
-            <CircleAlert size={20} />
-
+        <div className="workflow">
+          <div className="workflow-step">
             <div>
-              <strong>{a[0]}</strong>
-              <p>{a[1]}</p>
+              <Thermometer size={18} />
             </div>
 
-            <span>{a[2]}</span>
+            <strong>Risk Detected</strong>
 
-            <RiskBadge risk={a[3] as Risk} />
+            <span>
+              Thermal conditions cross threshold
+            </span>
           </div>
-        ))}
+
+          <div className="workflow-line" />
+
+          <div className="workflow-step">
+            <div>
+              <Zap size={18} />
+            </div>
+
+            <strong>AI Advisory</strong>
+
+            <span>
+              Localized message generated
+            </span>
+          </div>
+
+          <div className="workflow-line" />
+
+          <div className="workflow-step">
+            <div>
+              <Smartphone size={18} />
+            </div>
+
+            <strong>SMS / WhatsApp</strong>
+
+            <span>
+              Residents automatically notified
+            </span>
+          </div>
+
+          <div className="workflow-line" />
+
+          <div className="workflow-step">
+            <div>
+              <Building2 size={18} />
+            </div>
+
+            <strong>Authorities</strong>
+
+            <span>
+              Heat action response triggered
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -2006,7 +2296,10 @@ function IndexCard({
       <div className="index-bar">
         <i
           style={{
-            width: `${progress}%`,
+            width: `${Math.max(
+              0,
+              Math.min(100, progress)
+            )}%`,
           }}
         />
       </div>
