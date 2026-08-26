@@ -8,11 +8,14 @@ import {
   CircleAlert,
   CloudSun,
   Droplets,
+  Home,
   LayoutDashboard,
+  Leaf,
   Loader2,
   Map as MapIcon,
   Menu,
   MessageSquare,
+  RotateCcw,
   ShieldAlert,
   Smartphone,
   Thermometer,
@@ -1428,118 +1431,542 @@ function CoolingPlanPage({
   navigate: (page: Page) => void;
 }) {
   const [budget, setBudget] = useState(50);
+  const [selectedWard, setSelectedWard] = useState(12);
+  const [optimizing, setOptimizing] = useState(false);
+  const [optimized, setOptimized] = useState(true);
 
-  const total = budget;
+  const ward =
+    wards.find((w) => w.ward === selectedWard) ?? wards[0];
 
-  const plan = [
-    [
-      "Cool roofs",
-      Math.round(total * 0.34),
-      "High-risk dense residential zones",
-    ],
-    [
-      "Urban trees",
-      Math.round(total * 0.26),
-      "Low vegetation wards",
-    ],
-    [
-      "Reflective roads",
-      Math.round(total * 0.18),
-      "High surface-temperature corridors",
-    ],
-    [
-      "Cooling centres",
-      Math.round(total * 0.14),
-      "High population exposure areas",
-    ],
-    [
-      "Green corridors",
-      Math.round(total * 0.08),
-      "Heat connectivity zones",
-    ],
+  const interventionTemplates = [
+    {
+      name: "Cool Roofs",
+      icon: "▣",
+      percentage: 34,
+      description: "Reflective roofing for heat-exposed buildings",
+      target: "Dense residential areas",
+      cooling: 1.1,
+    },
+    {
+      name: "Urban Tree Plantation",
+      icon: "♧",
+      percentage: 26,
+      description: "Increase shade and vegetation coverage",
+      target: "Low vegetation wards",
+      cooling: 0.9,
+    },
+    {
+      name: "Reflective Surfaces",
+      icon: "◫",
+      percentage: 18,
+      description: "High-albedo roads and public surfaces",
+      target: "High surface-temperature corridors",
+      cooling: 0.7,
+    },
+    {
+      name: "Cooling Centres",
+      icon: "◇",
+      percentage: 14,
+      description: "Accessible cooling spaces for vulnerable residents",
+      target: "High population exposure zones",
+      cooling: 0.3,
+    },
+    {
+      name: "Green Corridors",
+      icon: "⌁",
+      percentage: 8,
+      description: "Connected green spaces to reduce heat buildup",
+      target: "Thermal hotspot corridors",
+      cooling: 0.6,
+    },
   ];
+
+  const interventions = interventionTemplates.map((item) => ({
+    ...item,
+    amount: Math.round((budget * item.percentage) / 100),
+  }));
+
+  const estimatedCooling =
+    interventions.reduce(
+      (sum, item) => sum + item.cooling * (budget / 50),
+      0
+    );
+
+  const temperatureReduction = Math.min(
+    5.4,
+    estimatedCooling
+  );
+
+  const populationBenefited = Math.min(
+    220,
+    Math.round(
+      42 +
+        budget * 1.55 +
+        (ward.population / 1000) * 0.8
+    )
+  );
+
+  const riskReduction = Math.min(
+    48,
+    Math.round(
+      10 +
+        budget * 0.43 +
+        riskRank[ward.risk] * 1.5
+    )
+  );
+
+  const wardsCovered = Math.min(
+    18,
+    Math.max(3, Math.round(budget / 3.8))
+  );
+
+  const runOptimization = () => {
+    setOptimizing(true);
+    setOptimized(false);
+
+    setTimeout(() => {
+      setOptimizing(false);
+      setOptimized(true);
+    }, 1400);
+  };
 
   return (
     <div className="cooling-page">
+
       <ModuleHeader
         eyebrow="AI DECISION SUPPORT"
         title="AI Cooling Plan"
-        text="Enter the available budget. The prototype automatically distributes investment toward the highest cooling impact."
+        text="Give ThermoShield the available budget. The system prioritizes high-risk areas and automatically creates an urban cooling strategy."
         right="Optimization ready"
       />
 
-      <div className="budget-panel panel">
-        <div>
-          <span>AVAILABLE BUDGET</span>
+      {/* =====================================================
+          BUDGET INPUT
+      ===================================================== */}
 
-          <strong>₹{budget} Cr</strong>
+      <section className="panel cooling-budget">
 
-          <p>
-            Change the budget to see the recommended
-            allocation update.
-          </p>
+        <div className="cooling-budget-heading">
+
+          <div className="budget-symbol">
+            ₹
+          </div>
+
+          <div>
+            <span>AVAILABLE MUNICIPAL BUDGET</span>
+
+            <h2>
+              ₹{budget} Cr
+            </h2>
+
+            <p>
+              The AI engine will optimize this budget across
+              heat-reduction interventions.
+            </p>
+          </div>
+
         </div>
 
-        <input
-          type="range"
-          min="5"
-          max="100"
-          value={budget}
-          onChange={(e) =>
-            setBudget(Number(e.target.value))
-          }
-        />
+        <div className="budget-control">
 
-        <div className="budget-labels">
-          <span>₹5 Cr</span>
-          <span>₹100 Cr</span>
-        </div>
-      </div>
+          <div className="budget-control-top">
+            <span>Investment range</span>
 
-      <div className="two-column">
-        <div className="panel">
-          <PanelHeader
-            title="Recommended Allocation"
-            subtitle="Prototype optimization output"
+            <strong>
+              ₹{budget} Cr
+            </strong>
+          </div>
+
+          <input
+            type="range"
+            min="5"
+            max="100"
+            step="5"
+            value={budget}
+            onChange={(e) => {
+              setBudget(Number(e.target.value));
+              setOptimized(false);
+            }}
           />
 
-          {plan.map(([name, cost, area]) => (
-            <div className="plan-row" key={name}>
-              <div>
-                <strong>{name}</strong>
-                <small>{area}</small>
+          <div className="budget-range">
+            <span>₹5 Cr</span>
+            <span>₹100 Cr</span>
+          </div>
+
+        </div>
+
+        <button
+          className="optimize-button"
+          onClick={runOptimization}
+          disabled={optimizing}
+        >
+          {optimizing ? (
+            <>
+              <Loader2
+                size={16}
+                className="spin"
+              />
+
+              Optimizing...
+            </>
+          ) : (
+            <>
+              <Zap size={16} />
+
+              {optimized
+                ? "Recalculate Plan"
+                : "Optimize Budget"}
+            </>
+          )}
+        </button>
+
+      </section>
+
+
+      {/* =====================================================
+          WARD PRIORITY
+      ===================================================== */}
+
+      <section className="panel cooling-priority">
+
+        <div className="cooling-section-heading">
+
+          <div>
+            <span>PRIORITY LOCATION</span>
+
+            <h2>
+              Where should we intervene?
+            </h2>
+
+            <p>
+              The AI prioritizes wards according to thermal
+              stress, population exposure and vulnerability.
+            </p>
+          </div>
+
+          <div className="priority-risk">
+            <span>SELECTED WARD</span>
+
+            <strong>
+              Ward {ward.ward}
+            </strong>
+
+            <RiskBadge risk={ward.risk} />
+          </div>
+
+        </div>
+
+        <div className="cooling-ward-selector">
+
+          {wards.map((item) => (
+            <button
+              key={item.ward}
+              className={
+                selectedWard === item.ward
+                  ? "cooling-ward active"
+                  : "cooling-ward"
+              }
+              onClick={() =>
+                setSelectedWard(item.ward)
+              }
+            >
+              <span>WARD</span>
+
+              <strong>{item.ward}</strong>
+
+              <small>
+                {item.temperature}°C
+              </small>
+            </button>
+          ))}
+
+        </div>
+
+      </section>
+
+
+      {/* =====================================================
+          AI OUTPUT
+      ===================================================== */}
+
+      <div className="cooling-plan-grid">
+
+        {/* LEFT */}
+
+        <section className="panel intervention-panel">
+
+          <div className="cooling-section-heading">
+
+            <div>
+              <span>AI GENERATED STRATEGY</span>
+
+              <h2>
+                Recommended interventions
+              </h2>
+
+              <p>
+                Automatically allocated for maximum
+                heat-reduction impact.
+              </p>
+            </div>
+
+            <div className="ai-status">
+              <span />
+              AI optimized
+            </div>
+
+          </div>
+
+
+          <div className="intervention-list">
+
+            {interventions.map((item) => (
+
+              <div
+                className="intervention-row"
+                key={item.name}
+              >
+
+                <div className="intervention-icon">
+                  {item.icon}
+                </div>
+
+                <div className="intervention-info">
+
+                  <div className="intervention-title">
+                    <strong>
+                      {item.name}
+                    </strong>
+
+                    <b>
+                      ₹{item.amount} Cr
+                    </b>
+                  </div>
+
+                  <p>
+                    {item.description}
+                  </p>
+
+                  <span>
+                    Target: {item.target}
+                  </span>
+
+                  <div className="intervention-bar">
+                    <i
+                      style={{
+                        width: `${item.percentage}%`,
+                      }}
+                    />
+                  </div>
+
+                </div>
+
+                <div className="intervention-share">
+                  {item.percentage}%
+                </div>
+
               </div>
 
-              <b>₹{cost} Cr</b>
+            ))}
+
+          </div>
+
+        </section>
+
+
+        {/* RIGHT */}
+
+        <section className="panel cooling-impact">
+
+          <div className="cooling-impact-header">
+
+            <span>PROJECTED IMPACT</span>
+
+            <CircleAlert size={17} />
+
+          </div>
+
+
+          <div className="main-impact">
+
+            <small>
+              ESTIMATED TEMPERATURE REDUCTION
+            </small>
+
+            <strong>
+              −{temperatureReduction.toFixed(1)}°C
+            </strong>
+
+            <p>
+              Estimated local cooling if the recommended
+              interventions are implemented.
+            </p>
+
+          </div>
+
+
+          <div className="impact-grid">
+
+            <div>
+              <Users size={17} />
+
+              <strong>
+                {populationBenefited}K
+              </strong>
+
+              <span>
+                people benefited
+              </span>
             </div>
-          ))}
-        </div>
 
-        <div className="panel impact-panel">
-          <span>ESTIMATED IMPACT</span>
+            <div>
+              <ShieldAlert size={17} />
 
-          <strong>3.8°C</strong>
+              <strong>
+                {riskReduction}%
+              </strong>
 
-          <small>potential local cooling</small>
+              <span>
+                thermal risk reduction
+              </span>
+            </div>
 
-          <div className="impact-stat">
-            <Users size={18} />
-            <b>118K</b>
-            <span>people potentially benefited</span>
+            <div>
+              <MapIcon size={17} />
+
+              <strong>
+                {wardsCovered}
+              </strong>
+
+              <span>
+                wards covered
+              </span>
+            </div>
+
+            <div>
+              <TreePine size={17} />
+
+              <strong>
+                {Math.round(budget * 1200)}
+              </strong>
+
+              <span>
+                trees / green assets
+              </span>
+            </div>
+
           </div>
 
-          <div className="impact-stat">
-            <TreePine size={18} />
-            <b>12</b>
-            <span>priority wards</span>
+
+          <div className="impact-note">
+
+            <Zap size={15} />
+
+            <p>
+              Highest-impact interventions are automatically
+              given more budget priority.
+            </p>
+
           </div>
 
-          <button onClick={() => navigate("Digital Twin")}>
-            Test in Digital Twin
+
+          <button
+            className="simulation-button"
+            onClick={() => navigate("Digital Twin")}
+          >
+            <Activity size={16} />
+
+            Simulate in Digital Twin
+
             <ChevronRight size={15} />
           </button>
-        </div>
+
+        </section>
+
       </div>
+
+
+      {/* =====================================================
+          BEFORE / AFTER
+      ===================================================== */}
+
+      <section className="panel cooling-preview">
+
+        <div className="cooling-section-heading">
+
+          <div>
+            <span>EXPECTED OUTCOME</span>
+
+            <h2>
+              Before vs AI Cooling Plan
+            </h2>
+
+            <p>
+              A simplified prototype estimate of the
+              intervention impact.
+            </p>
+          </div>
+
+        </div>
+
+
+        <div className="before-after">
+
+          <div className="scenario current">
+
+            <span>CURRENT CONDITION</span>
+
+            <strong>
+              {ward.temperature}°C
+            </strong>
+
+            <small>
+              WBGT {ward.wbgt}°C
+            </small>
+
+            <RiskBadge risk={ward.risk} />
+
+          </div>
+
+
+          <div className="scenario-arrow">
+            <ChevronRight size={22} />
+          </div>
+
+
+          <div className="scenario projected">
+
+            <span>PROJECTED CONDITION</span>
+
+            <strong>
+              {(
+                ward.temperature -
+                temperatureReduction
+              ).toFixed(1)}
+              °C
+            </strong>
+
+            <small>
+              WBGT{" "}
+              {Math.max(
+                24,
+                ward.wbgt -
+                  temperatureReduction * 0.72
+              ).toFixed(1)}
+              °C
+            </small>
+
+            <span className="projected-label">
+              AFTER AI INTERVENTION
+            </span>
+
+          </div>
+
+        </div>
+
+      </section>
+
     </div>
   );
 }
@@ -1553,95 +1980,585 @@ function DigitalTwinPage({
 }: {
   navigate: (page: Page) => void;
 }) {
-  const [cooling, setCooling] = useState(0);
+  const [temperature, setTemperature] = useState(44);
+  const [trees, setTrees] = useState(60);
+  const [coolRoofs, setCoolRoofs] = useState(45);
+  const [greenCover, setGreenCover] = useState(30);
+
+  /*
+   * Calculate the effect of interventions.
+   * This is a prototype simulation, so the numbers are illustrative.
+   */
+
+  const treeEffect = trees * 0.018;
+  const roofEffect = coolRoofs * 0.022;
+  const greenEffect = greenCover * 0.014;
+
+  const totalCooling = Math.min(
+    6.5,
+    treeEffect + roofEffect + greenEffect
+  );
+
+  const projectedTemperature = Math.max(
+    34,
+    temperature - totalCooling
+  );
+
+  const currentWBGT = Math.min(
+    36,
+    temperature * 0.74
+  );
+
+  const projectedWBGT = Math.max(
+    25,
+    currentWBGT - totalCooling * 0.68
+  );
+
+  const currentRisk =
+    temperature >= 45
+      ? "Extreme"
+      : temperature >= 42
+      ? "Very High"
+      : temperature >= 39
+      ? "High"
+      : "Moderate";
+
+  const projectedRisk =
+    projectedTemperature >= 45
+      ? "Extreme"
+      : projectedTemperature >= 42
+      ? "Very High"
+      : projectedTemperature >= 39
+      ? "High"
+      : "Moderate";
+
+  const riskReduction = Math.min(
+    55,
+    Math.round(totalCooling * 8)
+  );
+
+  const peopleProtected = Math.round(
+    25 +
+      trees * 0.45 +
+      coolRoofs * 0.35 +
+      greenCover * 0.25
+  );
+
+  const resetSimulation = () => {
+    setTemperature(44);
+    setTrees(60);
+    setCoolRoofs(45);
+    setGreenCover(30);
+  };
 
   return (
     <div className="twin-page">
+
       <ModuleHeader
-        eyebrow="SCENARIO SIMULATION"
+        eyebrow="URBAN HEAT SIMULATION"
         title="Digital Twin"
-        text="Simulate urban cooling interventions before authorities deploy them."
-        right="Simulation mode"
+        text="Model how different cooling interventions could change thermal conditions across the city."
+        right="Simulation active"
       />
 
-      <div className="panel twin-control">
-        <div>
-          <span>SIMULATED COOLING INTERVENTION</span>
+      {/* =====================================================
+          SIMULATION CONTROLS
+      ===================================================== */}
 
-          <h2>Increase green coverage</h2>
+      <section className="panel twin-control-panel">
 
-          <p>
-            Move the slider to simulate additional vegetation
-            in high-risk areas.
-          </p>
+        <div className="twin-heading">
+
+          <div className="twin-icon">
+            <Activity size={20} />
+          </div>
+
+          <div>
+            <span>LIVE SCENARIO</span>
+
+            <h2>
+              Heat Intervention Simulator
+            </h2>
+
+            <p>
+              Adjust the city conditions and interventions
+              to see their projected impact.
+            </p>
+          </div>
+
         </div>
 
-        <input
-          type="range"
-          min="0"
-          max="100"
-          value={cooling}
-          onChange={(e) =>
-            setCooling(Number(e.target.value))
-          }
-        />
+        <button
+          className="twin-reset"
+          onClick={resetSimulation}
+        >
+          <RotateCcw size={14} />
+          Reset
+        </button>
 
-        <strong>{cooling}%</strong>
+      </section>
+
+
+      {/* =====================================================
+          CONTROL GRID
+      ===================================================== */}
+
+      <div className="twin-main-grid">
+
+        <section className="panel twin-controls">
+
+          <div className="twin-panel-title">
+            <div>
+              <span>SCENARIO PARAMETERS</span>
+              <h2>Adjust interventions</h2>
+            </div>
+
+            <span className="simulation-live">
+              <i />
+              Live
+            </span>
+          </div>
+
+
+          {/* Temperature */}
+
+          <div className="twin-slider">
+
+            <div className="twin-slider-head">
+
+              <div>
+                <span>BASE TEMPERATURE</span>
+                <strong>
+                  {temperature}°C
+                </strong>
+              </div>
+
+              <Thermometer size={18} />
+
+            </div>
+
+            <input
+              type="range"
+              min="35"
+              max="48"
+              step="1"
+              value={temperature}
+              onChange={(e) =>
+                setTemperature(Number(e.target.value))
+              }
+            />
+
+            <div className="twin-range">
+              <span>35°C</span>
+              <span>48°C</span>
+            </div>
+
+          </div>
+
+
+          {/* Trees */}
+
+          <div className="twin-slider">
+
+            <div className="twin-slider-head">
+
+              <div>
+                <span>URBAN TREES</span>
+                <strong>
+                  {trees}%
+                </strong>
+              </div>
+
+              <TreePine size={18} />
+
+            </div>
+
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={trees}
+              onChange={(e) =>
+                setTrees(Number(e.target.value))
+              }
+            />
+
+            <div className="twin-range">
+              <span>0%</span>
+              <span>100%</span>
+            </div>
+
+          </div>
+
+
+          {/* Cool roofs */}
+
+          <div className="twin-slider">
+
+            <div className="twin-slider-head">
+
+              <div>
+                <span>COOL ROOF COVERAGE</span>
+                <strong>
+                  {coolRoofs}%
+                </strong>
+              </div>
+
+              <Home size={18} />
+
+            </div>
+
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={coolRoofs}
+              onChange={(e) =>
+                setCoolRoofs(Number(e.target.value))
+              }
+            />
+
+            <div className="twin-range">
+              <span>0%</span>
+              <span>100%</span>
+            </div>
+
+          </div>
+
+
+          {/* Green cover */}
+
+          <div className="twin-slider">
+
+            <div className="twin-slider-head">
+
+              <div>
+                <span>GREEN COVERAGE</span>
+                <strong>
+                  {greenCover}%
+                </strong>
+              </div>
+
+              <Leaf size={18} />
+
+            </div>
+
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={greenCover}
+              onChange={(e) =>
+                setGreenCover(Number(e.target.value))
+              }
+            />
+
+            <div className="twin-range">
+              <span>0%</span>
+              <span>100%</span>
+            </div>
+
+          </div>
+
+        </section>
+
+
+        {/* =================================================
+            IMPACT
+        ================================================= */}
+
+        <section className="panel twin-impact-panel">
+
+          <div className="twin-panel-title">
+
+            <div>
+              <span>PROJECTED IMPACT</span>
+              <h2>Simulation result</h2>
+            </div>
+
+            <div className="twin-status">
+              Active
+            </div>
+
+          </div>
+
+
+          <div className="twin-main-result">
+
+            <span>ESTIMATED COOLING</span>
+
+            <strong>
+              −{totalCooling.toFixed(1)}°C
+            </strong>
+
+            <p>
+              Projected reduction from the selected
+              intervention mix.
+            </p>
+
+          </div>
+
+
+          <div className="twin-metrics">
+
+            <div className="twin-metric">
+
+              <Thermometer size={17} />
+
+              <span>Temperature</span>
+
+              <strong>
+                {projectedTemperature.toFixed(1)}°C
+              </strong>
+
+            </div>
+
+
+            <div className="twin-metric">
+
+              <Wind size={17} />
+
+              <span>WBGT</span>
+
+              <strong>
+                {projectedWBGT.toFixed(1)}°C
+              </strong>
+
+            </div>
+
+
+            <div className="twin-metric">
+
+              <ShieldAlert size={17} />
+
+              <span>Risk reduction</span>
+
+              <strong>
+                {riskReduction}%
+              </strong>
+
+            </div>
+
+
+            <div className="twin-metric">
+
+              <Users size={17} />
+
+              <span>People protected</span>
+
+              <strong>
+                {peopleProtected}K
+              </strong>
+
+            </div>
+
+          </div>
+
+        </section>
+
       </div>
 
-      <div className="risk-overview-grid">
-        <div className="panel impact-box">
-          <span>TEMPERATURE CHANGE</span>
 
-          <strong>
-            -{(cooling * 0.025).toFixed(1)}°C
-          </strong>
+      {/* =====================================================
+          BEFORE / AFTER
+      ===================================================== */}
 
-          <small>estimated</small>
+      <section className="panel twin-comparison">
+
+        <div className="twin-panel-title">
+
+          <div>
+            <span>SCENARIO COMPARISON</span>
+
+            <h2>
+              Current city vs simulated city
+            </h2>
+
+            <p>
+              See how the selected interventions change
+              the thermal environment.
+            </p>
+          </div>
+
         </div>
 
-        <div className="panel impact-box">
-          <span>WBGT CHANGE</span>
 
-          <strong>
-            -{(cooling * 0.018).toFixed(1)}°C
-          </strong>
+        <div className="twin-before-after">
 
-          <small>estimated</small>
+          {/* CURRENT */}
+
+          <div className="twin-scenario current">
+
+            <div className="scenario-label">
+              CURRENT CONDITION
+            </div>
+
+            <div className="scenario-temperature">
+              {temperature}°C
+            </div>
+
+            <div className="scenario-wbgt">
+              WBGT {currentWBGT.toFixed(1)}°C
+            </div>
+
+            <div
+              className={`scenario-risk ${currentRisk
+                .toLowerCase()
+                .replace(" ", "-")}`}
+            >
+              {currentRisk} Risk
+            </div>
+
+          </div>
+
+
+          {/* ARROW */}
+
+          <div className="twin-arrow">
+            <ChevronRight size={22} />
+          </div>
+
+
+          {/* PROJECTED */}
+
+          <div className="twin-scenario projected">
+
+            <div className="scenario-label">
+              SIMULATED CONDITION
+            </div>
+
+            <div className="scenario-temperature">
+              {projectedTemperature.toFixed(1)}°C
+            </div>
+
+            <div className="scenario-wbgt">
+              WBGT {projectedWBGT.toFixed(1)}°C
+            </div>
+
+            <div
+              className={`scenario-risk ${projectedRisk
+                .toLowerCase()
+                .replace(" ", "-")}`}
+            >
+              {projectedRisk} Risk
+            </div>
+
+          </div>
+
         </div>
 
-        <div className="panel impact-box">
-          <span>PEOPLE BENEFITED</span>
+      </section>
 
-          <strong>
-            {Math.round(cooling * 1.25)}K
-          </strong>
 
-          <small>estimated</small>
+      {/* =====================================================
+          INTERVENTION SUMMARY
+      ===================================================== */}
+
+      <section className="panel twin-summary">
+
+        <div className="twin-panel-title">
+
+          <div>
+            <span>INTERVENTION MIX</span>
+
+            <h2>
+              What is driving the cooling?
+            </h2>
+          </div>
+
         </div>
-      </div>
 
-      <div className="action-panel panel">
+
+        <div className="twin-interventions">
+
+          <div className="twin-intervention tree">
+            <TreePine size={19} />
+
+            <div>
+              <strong>
+                Urban Trees
+              </strong>
+
+              <span>
+                {trees}% coverage
+              </span>
+            </div>
+
+            <b>
+              −{treeEffect.toFixed(1)}°C
+            </b>
+          </div>
+
+
+          <div className="twin-intervention roof">
+            <Home size={19} />
+
+            <div>
+              <strong>
+                Cool Roofs
+              </strong>
+
+              <span>
+                {coolRoofs}% coverage
+              </span>
+            </div>
+
+            <b>
+              −{roofEffect.toFixed(1)}°C
+            </b>
+          </div>
+
+
+          <div className="twin-intervention green">
+            <Leaf size={19} />
+
+            <div>
+              <strong>
+                Green Coverage
+              </strong>
+
+              <span>
+                {greenCover}% coverage
+              </span>
+            </div>
+
+            <b>
+              −{greenEffect.toFixed(1)}°C
+            </b>
+          </div>
+
+        </div>
+
+      </section>
+
+
+      {/* =====================================================
+          ACTION
+      ===================================================== */}
+
+      <div className="twin-action">
+
         <div>
-          <span>READY TO APPLY?</span>
+          <strong>
+            Ready to test another scenario?
+          </strong>
 
-          <h2>
-            Use this scenario in the AI Cooling Plan.
-          </h2>
-
-          <p>
-            The actual backend can later replace these
-            prototype estimates with model-based simulation.
-          </p>
+          <span>
+            Change the intervention levels above and
+            the simulation will update automatically.
+          </span>
         </div>
 
         <button
           onClick={() => navigate("AI Cooling Plan")}
         >
-          Open Cooling Plan
-          <ChevronRight size={16} />
+          <Zap size={15} />
+          Open AI Cooling Plan
+          <ChevronRight size={15} />
         </button>
+
       </div>
+
     </div>
   );
 }
