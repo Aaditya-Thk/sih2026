@@ -1,6 +1,9 @@
 const express = require("express");
 const cors = require("cors");
+const db = require("./database");
+
 require("dotenv").config();
+
 
 const app = express();
 
@@ -15,146 +18,281 @@ app.get("/", (req, res) => {
 
 const PORT = 5000;
 app.get("/api/dashboard", (req, res) => {
-    res.json({
-        city: "Bhubaneswar",
-        temperature: 42,
-        thermalRisk: 84,
-        populationAtRisk: 72400,
-        activeAlerts: 7
-    });
+    try {
+        const wards = db.prepare(`
+            SELECT
+                temperature,
+                population,
+                risk
+            FROM wards
+        `).all();
+
+        if (wards.length === 0) {
+            return res.status(404).json({
+                error: "No ward data found"
+            });
+        }
+
+        // Average city temperature
+        const averageTemperature =
+            wards.reduce((sum, ward) => sum + ward.temperature, 0) /
+            wards.length;
+
+        // Population living in High / Very High / Extreme wards
+        const populationAtRisk = wards
+            .filter(
+                (ward) =>
+                    ward.risk === "High" ||
+                    ward.risk === "Very High" ||
+                    ward.risk === "Extreme"
+            )
+            .reduce((sum, ward) => sum + ward.population, 0);
+
+        // Temporary risk score until ML model is connected
+        const riskScores = {
+            Moderate: 40,
+            High: 65,
+            "Very High": 80,
+            Extreme: 95
+        };
+
+        const thermalRisk = Math.round(
+            wards.reduce(
+                (sum, ward) =>
+                    sum + (riskScores[ward.risk] || 0),
+                0
+            ) / wards.length
+        );
+
+        // Temporary: number of Extreme + Very High wards
+        const activeAlerts = wards.filter(
+            (ward) =>
+                ward.risk === "Extreme" ||
+                ward.risk === "Very High"
+        ).length;
+
+        res.json({
+            city: "Bhubaneswar",
+            temperature: Math.round(averageTemperature),
+            thermalRisk,
+            populationAtRisk,
+            activeAlerts
+        });
+
+    } catch (error) {
+        console.error("Error fetching dashboard:", error);
+
+        res.status(500).json({
+            error: "Failed to fetch dashboard data"
+        });
+    }
 });
 app.get("/api/forecast", (req, res) => {
-    res.json([
-        {
-            day: "Today",
-            date: "23 Aug",
-            temp: 39,
-            feels: 43,
-            humidity: 61,
-            wind: 12,
-            radiation: 7.2,
-            wbgt: 28.4,
-            utci: 34.8,
-            risk: "High"
-        },
-        {
-            day: "Mon",
-            date: "24 Aug",
-            temp: 41,
-            feels: 46,
-            humidity: 65,
-            wind: 10,
-            radiation: 7.8,
-            wbgt: 30.1,
-            utci: 37.2,
-            risk: "High"
-        },
-        {
-            day: "Tue",
-            date: "25 Aug",
-            temp: 43,
-            feels: 49,
-            humidity: 69,
-            wind: 8,
-            radiation: 8.1,
-            wbgt: 32.0,
-            utci: 40.1,
-            risk: "Very High"
-        },
-        {
-            day: "Wed",
-            date: "26 Aug",
-            temp: 44,
-            feels: 51,
-            humidity: 72,
-            wind: 7,
-            radiation: 8.5,
-            wbgt: 33.2,
-            utci: 42.4,
-            risk: "Extreme"
-        },
-        {
-            day: "Thu",
-            date: "27 Aug",
-            temp: 42,
-            feels: 48,
-            humidity: 68,
-            wind: 9,
-            radiation: 7.9,
-            wbgt: 31.4,
-            utci: 39.0,
-            risk: "Very High"
-        }
-    ]);
-}); 
+    try {
+        const forecasts = db.prepare(`
+            SELECT
+                day,
+                date,
+                temp,
+                feels,
+                humidity,
+                wind,
+                radiation,
+                wbgt,
+                utci,
+                risk
+            FROM forecasts
+            ORDER BY id
+        `).all();
+
+        res.json(forecasts);
+    } catch (error) {
+        console.error("Error fetching forecast:", error);
+
+        res.status(500).json({
+            error: "Failed to fetch forecast data"
+        });
+    }
+});
 app.get("/api/wards", (req, res) => {
-    res.json([
-        {
-            ward: 12,
-            lat: 20.2961,
-            lng: 85.8245,
-            temperature: 44,
-            humidity: 72,
-            wind: 7,
-            radiation: 8.5,
-            wbgt: 32.8,
-            utci: 42.4,
-            population: 18400,
-            risk: "Extreme"
-        },
-        {
-            ward: 19,
-            lat: 20.302,
-            lng: 85.835,
-            temperature: 43,
-            humidity: 69,
-            wind: 8,
-            radiation: 8.1,
-            wbgt: 31.6,
-            utci: 40.8,
-            population: 21200,
-            risk: "Very High"
-        },
-        {
-            ward: 25,
-            lat: 20.288,
-            lng: 85.81,
-            temperature: 42,
-            humidity: 65,
-            wind: 10,
-            radiation: 7.8,
-            wbgt: 30.4,
-            utci: 38.9,
-            population: 15800,
-            risk: "High"
-        },
-        {
-            ward: 35,
-            lat: 20.31,
-            lng: 85.805,
-            temperature: 41,
-            humidity: 61,
-            wind: 12,
-            radiation: 7.2,
-            wbgt: 29.7,
-            utci: 36.9,
-            population: 17300,
-            risk: "High"
-        },
-        {
-            ward: 31,
-            lat: 20.278,
-            lng: 85.83,
-            temperature: 40,
-            humidity: 58,
-            wind: 14,
-            radiation: 6.9,
-            wbgt: 28.3,
-            utci: 34.8,
-            population: 12600,
-            risk: "Moderate"
+    try {
+        const wards = db.prepare(`
+            SELECT
+                ward,
+                lat,
+                lng,
+                temperature,
+                humidity,
+                wind,
+                radiation,
+                wbgt,
+                utci,
+                population,
+                risk
+            FROM wards
+            ORDER BY ward
+        `).all();
+
+        res.json(wards);
+    } catch (error) {
+        console.error("Error fetching wards:", error);
+
+        res.status(500).json({
+            error: "Failed to fetch ward data"
+        });
+    }
+});
+// GET ONLY HIGH-RISK WARDS
+app.get("/api/wards/high-risk", (req, res) => {
+    try {
+        const wards = db.prepare(`
+            SELECT
+                ward,
+                lat,
+                lng,
+                temperature,
+                humidity,
+                wind,
+                radiation,
+                wbgt,
+                utci,
+                population,
+                risk
+            FROM wards
+            WHERE risk IN ('Extreme', 'Very High', 'High')
+            ORDER BY
+                CASE risk
+                    WHEN 'Extreme' THEN 3
+                    WHEN 'Very High' THEN 2
+                    WHEN 'High' THEN 1
+                    ELSE 0
+                END DESC,
+                temperature DESC
+        `).all();
+
+        res.json(wards);
+
+    } catch (error) {
+        console.error(
+            "Error fetching high-risk wards:",
+            error
+        );
+
+        res.status(500).json({
+            error: "Failed to fetch high-risk wards"
+        });
+    }
+});
+// GET SINGLE WARD
+app.get("/api/wards/:ward", (req, res) => {
+    try {
+        const wardNumber = Number(req.params.ward);
+
+        const ward = db.prepare(`
+            SELECT
+                ward,
+                lat,
+                lng,
+                temperature,
+                humidity,
+                wind,
+                radiation,
+                wbgt,
+                utci,
+                population,
+                risk
+            FROM wards
+            WHERE ward = ?
+        `).get(wardNumber);
+
+        if (!ward) {
+            return res.status(404).json({
+                error: "Ward not found"
+            });
         }
-    ]);
+
+        res.json(ward);
+
+    } catch (error) {
+        console.error("Error fetching ward:", error);
+
+        res.status(500).json({
+            error: "Failed to fetch ward data"
+        });
+    }
+});
+// UPDATE A WARD
+app.put("/api/wards/:ward", (req, res) => {
+    try {
+        const wardNumber = Number(req.params.ward);
+
+        const {
+            temperature,
+            humidity,
+            wind,
+            radiation,
+            wbgt,
+            utci,
+            population,
+            risk
+        } = req.body;
+
+        const result = db.prepare(`
+            UPDATE wards
+            SET
+                temperature = ?,
+                humidity = ?,
+                wind = ?,
+                radiation = ?,
+                wbgt = ?,
+                utci = ?,
+                population = ?,
+                risk = ?
+            WHERE ward = ?
+        `).run(
+            temperature,
+            humidity,
+            wind,
+            radiation,
+            wbgt,
+            utci,
+            population,
+            risk,
+            wardNumber
+        );
+
+        if (result.changes === 0) {
+            return res.status(404).json({
+                error: "Ward not found"
+            });
+        }
+
+        const updatedWard = db.prepare(`
+            SELECT
+                ward,
+                lat,
+                lng,
+                temperature,
+                humidity,
+                wind,
+                radiation,
+                wbgt,
+                utci,
+                population,
+                risk
+            FROM wards
+            WHERE ward = ?
+        `).get(wardNumber);
+
+        res.json(updatedWard);
+
+    } catch (error) {
+        console.error("Error updating ward:", error);
+
+        res.status(500).json({
+            error: "Failed to update ward"
+        });
+    }
 });
 app.get("/api/heatmap", (req, res) => {
     res.json([

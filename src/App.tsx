@@ -406,7 +406,12 @@ function Dashboard({
   navigate: (page: Page) => void;
 }) {
   const [wardsData, setWardsData] = useState<Ward[]>([]);
-
+  const [dashboardData, setDashboardData] = useState({
+    temperature: 0,
+    thermalRisk: 0,
+    populationAtRisk: 0,
+    activeAlerts: 0,
+  });
   useEffect(() => {
     fetch("http://localhost:5000/api/wards")
       .then((response) => response.json())
@@ -418,6 +423,27 @@ function Dashboard({
 
         // fallback so the page still works
         setWardsData(wards);
+      });
+  }, []);
+  useEffect(() => {
+  fetch("http://localhost:5000/api/dashboard")
+    .then((response) => response.json())
+    .then((data) => {
+      setDashboardData(data);
+    })
+    .catch((error) => {
+      console.error("Error fetching dashboard:", error);
+    });
+}, []);
+
+  useEffect(() => {
+    fetch("http://localhost:5000/api/dashboard")
+      .then((response) => response.json())
+      .then((data) => {
+        setDashboardData(data);
+      })
+      .catch((error) => {
+        console.error("Error fetching dashboard data:", error);
       });
   }, []);
 
@@ -460,7 +486,7 @@ function Dashboard({
         <Stat
           icon={<Thermometer />}
           title="Current Temperature"
-          value="42°C"
+          value={`${dashboardData.temperature}°C`}
           description="Bhubaneswar average"
           label="HIGH"
         />
@@ -468,7 +494,7 @@ function Dashboard({
         <Stat
           icon={<ShieldAlert />}
           title="Human Thermal Stress"
-          value="84 / 100"
+          value={`${dashboardData.thermalRisk} / 100`}
           description="WBGT / UTCI based risk"
           label="VERY HIGH"
           danger
@@ -477,7 +503,7 @@ function Dashboard({
         <Stat
           icon={<Users />}
           title="Population at Risk"
-          value="72.4K"
+          value={formatK(dashboardData.populationAtRisk)}
           description="Across high-risk wards"
           label="EXPOSED"
         />
@@ -485,7 +511,7 @@ function Dashboard({
         <Stat
           icon={<Bell />}
           title="Active Alerts"
-          value="07"
+          value={String(dashboardData.activeAlerts).padStart(2, "0")}
           description="3 extreme · 4 high"
           label="ACTIVE"
           danger
@@ -1220,7 +1246,7 @@ function RiskAnalysisPage({
   if (!ward) {
     return <div>Loading risk analysis...</div>;
   }
-    wards.find((w) => w.ward === selectedWard) ?? wards[0];
+  wards.find((w) => w.ward === selectedWard) ?? wards[0];
 
   const stress = Math.min(
     100,
@@ -2704,13 +2730,12 @@ function AlertsPage() {
               .filter((w) => w.risk !== "Moderate")
               .map((ward) => (
                 <div
-                  className={`alert-item ${
-                    ward.risk === "Extreme"
-                      ? "alert-extreme"
-                      : ward.risk === "Very High"
+                  className={`alert-item ${ward.risk === "Extreme"
+                    ? "alert-extreme"
+                    : ward.risk === "Very High"
                       ? "alert-very-high"
                       : "alert-high"
-                  }`}
+                    }`}
                   key={ward.ward}
                 >
                   <div className="alert-item-icon">
