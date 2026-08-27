@@ -8300,4 +8300,86 @@ body {
 
     justify-content: center !important;
   }
+}/* Clickable panel actions */
+.panel-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+
+  padding: 7px 10px;
+
+  border: none;
+  background: transparent;
+
+  color: #557f96;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+
+  cursor: pointer;
+  border-radius: 6px;
+
+  transition: all 0.18s ease;
+}
+
+.panel-action:hover {
+  background: #edf4f7;
+  color: #183943;
+  transform: translateX(2px);
+}
+
+.panel-action svg {
+  transition: transform 0.18s ease;
+}
+
+.panel-action:hover svg {
+  transform: translateX(2px);
+}.panel-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+
+  padding: 8px 10px;
+
+  border: 0;
+  border-radius: 6px;
+
+  background: transparent;
+  color: #557f96;
+
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.panel-action:hover {
+  background: #edf4f7;
+  color: #183943;
+  transform: translateX(2px);
+}
+
+.panel-action:active {
+  transform: translateX(1px);
+}
+
+.panel-action svg {
+  flex-shrink: 0;
+  transition: transform 0.18s ease;
+}
+
+.panel-action:hover svg {
+  transform: translateX(2px);
+}
+
+.panel-action:focus-visible {
+  outline: 2px solid #9bb7c5;
+  outline-offset: 2px;
 }

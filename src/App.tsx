@@ -344,10 +344,14 @@ function App() {
               Extreme heat risk
             </div>
 
-            <button className="notification">
-              <Bell size={19} />
-              <i />
-            </button>
+            <button
+  className="notification"
+  onClick={() => navigate("Alerts")}
+  title="View alerts"
+>
+  <Bell size={19} />
+  <i />
+</button>
 
             <div className="user">
               <div>AT</div>
@@ -494,6 +498,7 @@ function Dashboard({
             title="5-Day Heat Forecast"
             subtitle="Temperature and humidity outlook"
             action="View forecast"
+            onAction={() => navigate("Forecast")}
           />
 
           <div className="forecast">
@@ -587,6 +592,7 @@ function Dashboard({
           title="Highest-Risk Wards"
           subtitle="Locations requiring immediate attention"
           action="Open risk analysis"
+          onAction={() => navigate("Risk Analysis")}
         />
 
         <div className="ward-header">
@@ -3066,11 +3072,19 @@ function PanelHeader({
   title,
   subtitle,
   action,
+  onAction,
 }: {
   title: string;
   subtitle: string;
   action?: string;
+  onAction?: () => void;
 }) {
+  const handleAction = () => {
+    if (onAction) {
+      onAction();
+    }
+  };
+
   return (
     <div className="panel-header">
       <div>
@@ -3079,10 +3093,15 @@ function PanelHeader({
       </div>
 
       {action && (
-        <span className="panel-action">
-          {action}
-          <ChevronRight size={14} />
-        </span>
+        <button
+          type="button"
+          className="panel-action"
+          onClick={handleAction}
+          aria-label={action}
+        >
+          <span>{action}</span>
+          <ChevronRight size={15} />
+        </button>
       )}
     </div>
   );
