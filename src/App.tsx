@@ -345,13 +345,13 @@ function App() {
             </div>
 
             <button
-  className="notification"
-  onClick={() => navigate("Alerts")}
-  title="View alerts"
->
-  <Bell size={19} />
-  <i />
-</button>
+              className="notification"
+              onClick={() => navigate("Alerts")}
+              title="View alerts"
+            >
+              <Bell size={19} />
+              <i />
+            </button>
 
             <div className="user">
               <div>AT</div>
@@ -406,49 +406,162 @@ function Dashboard({
   navigate: (page: Page) => void;
 }) {
   const [wardsData, setWardsData] = useState<Ward[]>([]);
+  const [highRiskWards, setHighRiskWards] = useState<Ward[]>([]);
+
   const [dashboardData, setDashboardData] = useState({
     temperature: 0,
     thermalRisk: 0,
     populationAtRisk: 0,
     activeAlerts: 0,
   });
-  useEffect(() => {
-    fetch("http://localhost:5000/api/wards")
-      .then((response) => response.json())
-      .then((data) => {
-        setWardsData(data);
-      })
-      .catch((error) => {
-        console.error("Error fetching wards:", error);
 
-        // fallback so the page still works
+  const [forecastData, setForecastData] = useState<
+    {
+      day: string;
+      date: string;
+      temp: number;
+      feels: number;
+      humidity: number;
+      wind: number;
+      radiation: number;
+      wbgt: number;
+      utci: number;
+      risk: string;
+    }[]
+  >([]);
+
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      try {
+        const [dashboardResponse, wardsResponse, highRiskResponse, forecastResponse] =
+          await Promise.all([
+            fetch("http://localhost:5000/api/dashboard"),
+            fetch("http://localhost:5000/api/wards"),
+            fetch("http://localhost:5000/api/wards/high-risk"),
+            fetch("http://localhost:5000/api/forecast"),
+          ]);
+
+        if (!dashboardResponse.ok) {
+          throw new Error("Failed to fetch dashboard data");
+        }
+
+        if (!wardsResponse.ok) {
+          throw new Error("Failed to fetch ward data");
+        }
+
+        if (!highRiskResponse.ok) {
+          throw new Error("Failed to fetch high-risk wards");
+        }
+
+        if (!forecastResponse.ok) {
+          throw new Error("Failed to fetch forecast data");
+        }
+
+        const dashboard = await dashboardResponse.json();
+        const wards = await wardsResponse.json();
+        const highRisk = await highRiskResponse.json();
+        const forecast = await forecastResponse.json();
+
+        setDashboardData(dashboard);
         setWardsData(wards);
-      });
-  }, []);
-  useEffect(() => {
-  fetch("http://localhost:5000/api/dashboard")
-    .then((response) => response.json())
-    .then((data) => {
-      setDashboardData(data);
-    })
-    .catch((error) => {
-      console.error("Error fetching dashboard:", error);
-    });
-}, []);
+        setHighRiskWards(highRisk);
+        setForecastData(forecast);
+      } catch (error) {
+        console.error("Error loading dashboard:", error);
+      }
+    };
 
-  useEffect(() => {
-    fetch("http://localhost:5000/api/dashboard")
-      .then((response) => response.json())
-      .then((data) => {
-        setDashboardData(data);
-      })
-      .catch((error) => {
-        console.error("Error fetching dashboard data:", error);
-      });
+    loadDashboardData();
   }, []);
 
-  const displayWards =
-    wardsData.length > 0 ? wardsData : wards;
+  // --------------------------------------------------
+  // RISK INFORMATION
+  // --------------------------------------------------
+
+  const extremeCount = wardsData.filter(
+    (ward) => ward.risk === "Extreme"
+  ).length;
+
+  const veryHighCount = wardsData.filter(
+    (ward) => ward.risk === "Very High"
+  ).length;
+
+  const highCount = wardsData.filter(
+    (ward) => ward.risk === "High"
+  ).length;
+
+  const getRiskLabel = (score: number) => {
+    if (score >= 80) return "EXTREME";
+    if (score >= 60) return "VERY HIGH";
+    if (score >= 45) return "HIGH";
+    if (score >= 30) return "MODERATE";
+    return "LOW";
+  };
+
+  const riskLabel = getRiskLabel(dashboardData.thermalRisk);
+
+  // --------------------------------------------------
+  // AVERAGE WEATHER VALUES FROM 67 WARDS
+  // --------------------------------------------------
+
+  const averageHumidity =
+    wardsData.length > 0
+      ? wardsData.reduce((sum, ward) => sum + Number(ward.humidity || 0), 0) /
+      wardsData.length
+      : 0;
+
+  const averageWind =
+    wardsData.length > 0
+      ? wardsData.reduce((sum, ward) => sum + Number(ward.wind || 0), 0) /
+      wardsData.length
+      : 0;
+
+  const averageTemperature =
+    wardsData.length > 0
+      ? wardsData.reduce(
+        (sum, ward) => sum + Number(ward.temperature || 0),
+        0
+      ) / wardsData.length
+      : 0;
+
+  // Used only for visual progress bars.
+  // These are calculated from actual backend weather values.
+  const temperatureProgress = Math.min(
+    100,
+    Math.max(0, ((averageTemperature - 20) / 25) * 100)
+  );
+
+  const humidityProgress = Math.min(
+    100,
+    Math.max(0, averageHumidity)
+  );
+
+  const windRiskProgress = Math.min(
+    100,
+    Math.max(0, ((20 - averageWind) / 20) * 100)
+  );
+
+  // --------------------------------------------------
+  // FORECAST
+  // --------------------------------------------------
+
+  const peakForecast =
+    forecastData.length > 0
+      ? forecastData.reduce((highest, current) =>
+        current.temp > highest.temp ? current : highest
+      )
+      : null;
+
+  // --------------------------------------------------
+  // HIGH-RISK WARD MESSAGE
+  // --------------------------------------------------
+
+  const riskSummary =
+    extremeCount > 0 || highCount > 0
+      ? `${extremeCount} extreme · ${highCount} high`
+      : veryHighCount > 0
+        ? `${veryHighCount} very high-risk wards`
+        : "No high-risk wards currently";
 
   return (
     <div className="dashboard">
@@ -482,22 +595,32 @@ function Dashboard({
         </button>
       </section>
 
+      {/* =======================
+          DASHBOARD STATS
+      ======================= */}
+
       <section className="stats">
         <Stat
           icon={<Thermometer />}
           title="Current Temperature"
           value={`${dashboardData.temperature}°C`}
           description="Bhubaneswar average"
-          label="HIGH"
+          label={
+            dashboardData.temperature >= 40
+              ? "EXTREME"
+              : dashboardData.temperature >= 35
+                ? "HIGH"
+                : "NORMAL"
+          }
         />
 
         <Stat
           icon={<ShieldAlert />}
           title="Human Thermal Stress"
           value={`${dashboardData.thermalRisk} / 100`}
-          description="WBGT / UTCI based risk"
-          label="VERY HIGH"
-          danger
+          description="Current weather-based assessment"
+          label={riskLabel}
+          danger={dashboardData.thermalRisk >= 60}
         />
 
         <Stat
@@ -505,18 +628,26 @@ function Dashboard({
           title="Population at Risk"
           value={formatK(dashboardData.populationAtRisk)}
           description="Across high-risk wards"
-          label="EXPOSED"
+          label={
+            dashboardData.populationAtRisk > 0
+              ? "EXPOSED"
+              : "NONE"
+          }
         />
 
         <Stat
           icon={<Bell />}
           title="Active Alerts"
           value={String(dashboardData.activeAlerts).padStart(2, "0")}
-          description="3 extreme · 4 high"
-          label="ACTIVE"
-          danger
+          description={riskSummary}
+          label={dashboardData.activeAlerts > 0 ? "ACTIVE" : "NONE"}
+          danger={dashboardData.activeAlerts > 0}
         />
       </section>
+
+      {/* =======================
+          FORECAST + RISK
+      ======================= */}
 
       <section className="two-column">
         <div className="panel">
@@ -528,11 +659,14 @@ function Dashboard({
           />
 
           <div className="forecast">
-            {fallbackForecast.map((item, i) => (
+            {forecastData.map((item, i) => (
               <div
-                className={`forecast-card ${i === 3 ? "forecast-highlight" : ""
+                className={`forecast-card ${peakForecast &&
+                  item.day === peakForecast.day
+                  ? "forecast-highlight"
+                  : ""
                   }`}
-                key={item.day}
+                key={`${item.day}-${item.date}`}
               >
                 <span>{item.day}</span>
 
@@ -550,18 +684,22 @@ function Dashboard({
             ))}
           </div>
 
-          <div className="forecast-message">
-            <CloudSun size={18} />
+          {peakForecast && (
+            <div className="forecast-message">
+              <CloudSun size={18} />
 
-            <div>
-              <strong>Peak heat expected Wednesday</strong>
+              <div>
+                <strong>
+                  Peak heat expected {peakForecast.day}
+                </strong>
 
-              <p>
-                Temperature may reach 44°C with high humidity,
-                increasing human thermal stress.
-              </p>
+                <p>
+                  Temperature may reach {peakForecast.temp}°C
+                  with humidity around {peakForecast.humidity}%.
+                </p>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         <div className="panel">
@@ -572,18 +710,28 @@ function Dashboard({
 
           <div className="risk-section">
             <div className="risk-circle">
-              <strong>84</strong>
+              <strong>{dashboardData.thermalRisk}</strong>
               <span>/100</span>
             </div>
 
             <div className="risk-text">
-              <label>VERY HIGH RISK</label>
+              <label>{riskLabel} RISK</label>
 
-              <h3>Extreme thermal stress</h3>
+              <h3>
+                {riskLabel === "EXTREME"
+                  ? "Extreme thermal stress"
+                  : riskLabel === "VERY HIGH"
+                    ? "Very high thermal stress"
+                    : riskLabel === "HIGH"
+                      ? "High thermal stress"
+                      : riskLabel === "MODERATE"
+                        ? "Moderate thermal stress"
+                        : "Low thermal stress"}
+              </h3>
 
               <p>
-                Temperature, humidity, wind speed and solar
-                radiation are creating dangerous thermal conditions.
+                Current assessment is based on weather conditions
+                across the monitored Bhubaneswar wards.
               </p>
             </div>
           </div>
@@ -592,26 +740,30 @@ function Dashboard({
             <RiskFactor
               icon={<Thermometer size={15} />}
               name="Temperature"
-              value="42°C"
-              progress={88}
+              value={`${averageTemperature.toFixed(1)}°C`}
+              progress={Math.round(temperatureProgress)}
             />
 
             <RiskFactor
               icon={<Droplets size={15} />}
               name="Humidity"
-              value="71%"
-              progress={71}
+              value={`${Math.round(averageHumidity)}%`}
+              progress={Math.round(humidityProgress)}
             />
 
             <RiskFactor
               icon={<Wind size={15} />}
               name="Wind Speed"
-              value="Low"
-              progress={76}
+              value={`${averageWind.toFixed(1)} km/h`}
+              progress={Math.round(windRiskProgress)}
             />
           </div>
         </div>
       </section>
+
+      {/* =======================
+          HIGH-RISK WARDS
+      ======================= */}
 
       <section className="panel ward-panel">
         <PanelHeader
@@ -629,23 +781,41 @@ function Dashboard({
           <span />
         </div>
 
-        {displayWards.map((w) => (
-          <div className="ward-row" key={w.ward}>
-            <strong>Ward {w.ward}</strong>
+        {highRiskWards.length > 0 ? (
+          highRiskWards.map((w) => (
+            <div className="ward-row" key={w.ward}>
+              <strong>Ward {w.ward}</strong>
 
-            <b>{w.temperature}°C</b>
+              <b>{w.temperature}°C</b>
 
-            <span>{formatK(w.population)}</span>
+              <span>{formatK(w.population)}</span>
 
-            <RiskBadge risk={w.risk} />
+              <RiskBadge risk={w.risk} />
 
-            <button onClick={() => navigate("Risk Analysis")}>
-              Analyze
-              <ChevronRight size={14} />
-            </button>
+              <button
+                onClick={() => navigate("Risk Analysis")}
+              >
+                Analyze
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          ))
+        ) : (
+          <div
+            style={{
+              padding: "24px",
+              textAlign: "center",
+            }}
+          >
+            No high-risk wards currently require immediate
+            precautions.
           </div>
-        ))}
+        )}
       </section>
+
+      {/* =======================
+          COOLING ENGINE
+      ======================= */}
 
       <section className="cooling">
         <div className="cooling-left">
@@ -671,22 +841,28 @@ function Dashboard({
         </div>
 
         <div className="cooling-right">
-          <small>EXAMPLE AVAILABLE BUDGET</small>
+          <small>AVAILABLE BUDGET</small>
 
-          <strong>₹50 Cr</strong>
+          <strong>Enter in AI Planner</strong>
 
-          <button onClick={() => navigate("AI Cooling Plan")}>
+          <button
+            onClick={() => navigate("AI Cooling Plan")}
+          >
             Open AI Planner
             <ChevronRight size={16} />
           </button>
         </div>
       </section>
 
+      {/* =======================
+          INSIGHTS
+      ======================= */}
+
       <section className="insights">
         <Insight
           icon={<TreePine />}
           title="Low Vegetation"
-          description="12 wards have critically low vegetation coverage."
+          description="Ward-level vegetation analysis will appear when the vegetation dataset is integrated."
           action="View areas"
           onClick={() => navigate("AI Cooling Plan")}
         />
@@ -694,7 +870,11 @@ function Dashboard({
         <Insight
           icon={<MessageSquare />}
           title="Automated Alerts"
-          description="SMS and WhatsApp heat advisories are active."
+          description={
+            dashboardData.activeAlerts > 0
+              ? `${dashboardData.activeAlerts} active heat alerts detected.`
+              : "No active high-risk heat alerts currently detected."
+          }
           action="View alerts"
           onClick={() => navigate("Alerts")}
         />
@@ -727,19 +907,28 @@ function HeatMapPage({
     | "population";
 
   const [layer, setLayer] = useState<Layer>("risk");
-
   const [wardsData, setWardsData] = useState<Ward[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch("http://localhost:5000/api/wards")
-      .then((response) => response.json())
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Failed to fetch ward data");
+        }
+
+        return response.json();
+      })
       .then((data) => {
         setWardsData(data);
+        setLoading(false);
       })
       .catch((error) => {
         console.error("Error fetching wards:", error);
+        setLoading(false);
       });
   }, []);
+
   const sorted = useMemo(() => {
     return [...wardsData].sort((a, b) => {
       if (layer === "temperature") {
@@ -763,6 +952,7 @@ function HeatMapPage({
       if (w.temperature >= 44) return "#c94141";
       if (w.temperature >= 43) return "#dc6545";
       if (w.temperature >= 42) return "#e09b3f";
+
       return "#668fa3";
     }
 
@@ -770,6 +960,7 @@ function HeatMapPage({
       if (w.wbgt >= 32) return "#a94f76";
       if (w.wbgt >= 31) return "#c96061";
       if (w.wbgt >= 30) return "#dc9145";
+
       return "#5f8ea4";
     }
 
@@ -777,6 +968,7 @@ function HeatMapPage({
       if (w.population >= 20000) return "#326f82";
       if (w.population >= 18000) return "#47879a";
       if (w.population >= 16000) return "#5b99a7";
+
       return "#78aeb5";
     }
 
@@ -800,6 +992,70 @@ function HeatMapPage({
 
     return formatK(w.population);
   };
+  const visibleWards = wardsData.filter(
+    (w) =>
+      w.risk === "High" ||
+      w.risk === "Very High" ||
+      w.risk === "Extreme"
+  );
+
+  // -----------------------------------------
+  // DYNAMIC SUMMARY VALUES
+  // -----------------------------------------
+
+  const highestTemperature =
+    wardsData.length > 0
+      ? Math.max(
+        ...wardsData.map((w) => Number(w.temperature || 0))
+      )
+      : 0;
+
+  const averageWBGT =
+    wardsData.length > 0
+      ? wardsData.reduce(
+        (sum, w) => sum + Number(w.wbgt || 0),
+        0
+      ) / wardsData.length
+      : 0;
+
+  const populationAtRisk = wardsData
+    .filter(
+      (w) =>
+        w.risk === "Extreme" ||
+        w.risk === "Very High" ||
+        w.risk === "High"
+    )
+    .reduce(
+      (sum, w) => sum + Number(w.population || 0),
+      0
+    );
+
+  const extremeCount = wardsData.filter(
+    (w) => w.risk === "Extreme"
+  ).length;
+
+  const veryHighCount = wardsData.filter(
+    (w) => w.risk === "Very High"
+  ).length;
+
+  const highCount = wardsData.filter(
+    (w) => w.risk === "High"
+  ).length;
+
+  const highRiskCount =
+    extremeCount + veryHighCount + highCount;
+
+  if (loading) {
+    return (
+      <div className="heat-map-page">
+        <ModuleHeader
+          eyebrow="HYPERLOCAL HEAT INTELLIGENCE"
+          title="Urban Heat Map"
+          text="Loading ward-level heat intelligence..."
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="heat-map-page">
@@ -807,7 +1063,7 @@ function HeatMapPage({
         eyebrow="HYPERLOCAL HEAT INTELLIGENCE"
         title="Urban Heat Map"
         text="Explore temperature and human thermal stress across Bhubaneswar at ward level."
-        right="Updated 18:30"
+        right={`${wardsData.length} wards monitored`}
       />
 
       <div className="map-toolbar">
@@ -822,7 +1078,9 @@ function HeatMapPage({
           ).map(([id, label]) => (
             <button
               key={id}
-              className={layer === id ? "layer-active" : ""}
+              className={
+                layer === id ? "layer-active" : ""
+              }
               onClick={() => setLayer(id)}
             >
               {label}
@@ -849,14 +1107,14 @@ function HeatMapPage({
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
 
-            {wardsData.map((w) => (
+            {visibleWards.map((w) => (
               <CircleMarker
                 key={`${layer}-${w.ward}`}
                 center={[w.lat, w.lng]}
                 radius={
                   layer === "population"
-                    ? Math.max(24, w.population / 700)
-                    : 30
+                    ? Math.max(10, Math.min(24, w.population / 800))
+                    : 12
                 }
                 pathOptions={{
                   color: color(w),
@@ -882,6 +1140,16 @@ function HeatMapPage({
                     </div>
 
                     <div className="popup-row">
+                      <span>Humidity</span>
+                      <b>{w.humidity}%</b>
+                    </div>
+
+                    <div className="popup-row">
+                      <span>Wind</span>
+                      <b>{w.wind} km/h</b>
+                    </div>
+
+                    <div className="popup-row">
                       <span>WBGT</span>
                       <b>{w.wbgt}°C</b>
                     </div>
@@ -889,6 +1157,11 @@ function HeatMapPage({
                     <div className="popup-row">
                       <span>Population</span>
                       <b>{formatK(w.population)}</b>
+                    </div>
+
+                    <div className="popup-row">
+                      <span>Risk</span>
+                      <b>{w.risk}</b>
                     </div>
                   </div>
                 </Popup>
@@ -912,16 +1185,23 @@ function HeatMapPage({
 
               <p>
                 Ranked by current{" "}
-                {layer === "risk" ? "thermal risk" : layer}
+                {layer === "risk"
+                  ? "thermal risk"
+                  : layer}
               </p>
             </div>
 
-            <span>5 zones</span>
+            <span>
+              {sorted.length} zones
+            </span>
           </div>
 
           <div className="hotspot-list">
             {sorted.map((w, i) => (
-              <div className="hotspot" key={w.ward}>
+              <div
+                className="hotspot"
+                key={w.ward}
+              >
                 <div className="hotspot-rank">
                   {String(i + 1).padStart(2, "0")}
                 </div>
@@ -930,11 +1210,15 @@ function HeatMapPage({
                   <strong>Ward {w.ward}</strong>
 
                   <div>
-                    <span style={{ color: color(w) }}>
+                    <span
+                      style={{ color: color(w) }}
+                    >
                       {value(w)}
                     </span>
 
-                    <small>WBGT {w.wbgt}</small>
+                    <small>
+                      WBGT {w.wbgt}°C
+                    </small>
                   </div>
                 </div>
 
@@ -948,26 +1232,51 @@ function HeatMapPage({
           <div className="map-summary">
             <div>
               <span>HIGHEST TEMP</span>
-              <strong>44°C</strong>
+
+              <strong>
+                {highestTemperature.toFixed(1)}°C
+              </strong>
             </div>
 
             <div>
               <span>AVG WBGT</span>
-              <strong>30.6</strong>
+
+              <strong>
+                {averageWBGT.toFixed(1)}°C
+              </strong>
             </div>
 
             <div>
               <span>AT RISK</span>
-              <strong>85.3K</strong>
+
+              <strong>
+                {formatK(populationAtRisk)}
+              </strong>
             </div>
+          </div>
+
+          <div
+            style={{
+              marginTop: "10px",
+              fontSize: "12px",
+              opacity: 0.7,
+            }}
+          >
+            {highRiskCount > 0
+              ? `${extremeCount} extreme · ${veryHighCount} very high · ${highCount} high`
+              : "No high-risk wards currently detected"}
           </div>
 
           <button
             className="cooling-map-button"
-            onClick={() => navigate("AI Cooling Plan")}
+            onClick={() =>
+              navigate("AI Cooling Plan")
+            }
           >
             <Zap size={16} />
+
             Generate Cooling Plan
+
             <ChevronRight size={15} />
           </button>
         </div>
@@ -985,30 +1294,108 @@ function ForecastPage({
 }: {
   navigate: (page: Page) => void;
 }) {
-  const [forecastData, setForecastData] = useState<any[]>(
-    []
-  );
-
-  const [selectedDay, setSelectedDay] = useState(3);
+  const [forecastData, setForecastData] = useState<any[]>([]);
+  const [selectedDay, setSelectedDay] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch("http://localhost:5000/api/forecast")
-      .then((response) => response.json())
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Failed to fetch forecast");
+        }
+
+        return response.json();
+      })
       .then((data) => {
         setForecastData(data);
+        setLoading(false);
       })
       .catch((error) => {
         console.error("Error fetching forecast:", error);
-
-        setForecastData(fallbackForecast);
+        setLoading(false);
       });
   }, []);
 
-  const selected = forecastData[selectedDay];
-
-  if (!selected) {
+  if (loading) {
     return <div>Loading forecast...</div>;
   }
+
+  if (forecastData.length === 0) {
+    return (
+      <div className="forecast-page">
+        <ModuleHeader
+          eyebrow="AI HEAT FORECAST"
+          title="5-Day Heat Forecast"
+          text="No forecast data is currently available."
+        />
+      </div>
+    );
+  }
+
+  const selected = forecastData[selectedDay];
+
+  // Find the hottest day
+  const peakForecast = forecastData.reduce(
+    (highest, current) =>
+      Number(current.temp) > Number(highest.temp)
+        ? current
+        : highest,
+    forecastData[0]
+  );
+
+  // Count risk levels
+  const extremeDays = forecastData.filter(
+    (item) => item.risk === "Extreme"
+  ).length;
+
+  const veryHighDays = forecastData.filter(
+    (item) => item.risk === "Very High"
+  ).length;
+
+  const highDays = forecastData.filter(
+    (item) => item.risk === "High"
+  ).length;
+
+  const getConfidenceText = () => {
+    if (forecastData.length >= 5) {
+      return "5-day forecast available";
+    }
+
+    return `${forecastData.length}-day forecast available`;
+  };
+
+  const getPeakMessage = () => {
+    if (peakForecast.risk === "Extreme") {
+      return `The highest-risk period is expected on ${peakForecast.day}. Cooling interventions should be prioritized before this period.`;
+    }
+
+    if (peakForecast.risk === "Very High") {
+      return `${peakForecast.day} is expected to have very high thermal stress. Vulnerable populations should take precautions.`;
+    }
+
+    if (peakForecast.risk === "High") {
+      return `${peakForecast.day} is expected to have elevated heat risk. Precautionary measures are recommended.`;
+    }
+
+    return `${peakForecast.day} has the highest temperature in the current forecast period.`;
+  };
+
+  const getRiskInterpretation = () => {
+    if (extremeDays > 0) {
+      return "Extreme heat conditions are expected during the forecast period.";
+    }
+
+    if (veryHighDays > 0) {
+      return "Very high thermal stress is expected during the forecast period.";
+    }
+
+    if (highDays > 0) {
+      return "Elevated heat risk is expected during the forecast period.";
+    }
+
+    return "Current forecast conditions indicate moderate or low thermal risk.";
+  };
 
   return (
     <div className="forecast-page">
@@ -1016,13 +1403,17 @@ function ForecastPage({
         eyebrow="AI HEAT FORECAST"
         title="5-Day Heat Forecast"
         text="Predicting what the heat will do to people, not just what the temperature will be."
-        right="91% confidence"
+        right={getConfidenceText()}
       />
+
+      {/* =======================
+          FORECAST DAYS
+      ======================= */}
 
       <div className="forecast-days">
         {forecastData.map((item, index) => (
           <button
-            key={item.day}
+            key={`${item.day}-${item.date}`}
             className={
               selectedDay === index
                 ? "forecast-day active"
@@ -1046,6 +1437,11 @@ function ForecastPage({
       </div>
 
       <div className="forecast-main-grid">
+
+        {/* =======================
+            SELECTED DAY
+        ======================= */}
+
         <div className="panel forecast-detail">
           <PanelHeader
             title={`${selected.day}, ${selected.date}`}
@@ -1078,15 +1474,16 @@ function ForecastPage({
               icon={<Zap size={19} />}
               name="Solar Radiation"
               value={`${selected.radiation}`}
-              sub="kWh/m² daily exposure"
+              sub="Solar radiation"
             />
           </div>
 
           <div className="thermal-index-title">
             <div>
               <h3>Human Thermal Stress</h3>
+
               <p>
-                Advanced heat indices used by ThermoShield
+                Thermal indicators from the forecast dataset
               </p>
             </div>
 
@@ -1098,51 +1495,68 @@ function ForecastPage({
               name="WBGT"
               value={`${selected.wbgt}°C`}
               desc="Wet Bulb Globe Temperature"
-              progress={Math.min(selected.wbgt * 2.7, 100)}
+              progress={Math.min(
+                Number(selected.wbgt) * 2.7,
+                100
+              )}
             />
 
             <IndexCard
               name="UTCI"
               value={`${selected.utci}°C`}
               desc="Universal Thermal Climate Index"
-              progress={Math.min(selected.utci * 2.1, 100)}
+              progress={Math.min(
+                Number(selected.utci) * 2.1,
+                100
+              )}
             />
           </div>
         </div>
 
+        {/* =======================
+            PEAK HEAT
+        ======================= */}
+
         <div className="panel peak-panel">
-          <div className="peak-label">PEAK HEAT DAY</div>
+          <div className="peak-label">
+            PEAK HEAT DAY
+          </div>
 
           <div className="peak-icon">
             <Thermometer size={25} />
           </div>
 
-          <h2>Wednesday</h2>
+          <h2>{peakForecast.day}</h2>
 
           <strong className="peak-temperature">
-            44°C
+            {peakForecast.temp}°C
           </strong>
 
           <p>
-            Expected to be the most dangerous heat period
-            during the next 5 days.
+            {getPeakMessage()}
           </p>
 
           <div className="peak-risk">
             <span>HUMAN THERMAL RISK</span>
-            <b>EXTREME</b>
+            <b>{peakForecast.risk.toUpperCase()}</b>
           </div>
 
           <div className="peak-recommendation">
             <Zap size={16} />
 
             <span>
-              Cooling interventions should be prioritized
-              before Wednesday.
+              {peakForecast.risk === "Extreme" ||
+                peakForecast.risk === "Very High"
+                ? `Precautions should be taken before ${peakForecast.day}.`
+                : `Continue monitoring conditions through ${peakForecast.day}.`}
             </span>
           </div>
         </div>
       </div>
+
+      {/* =======================
+          AI INTERPRETATION
+      ======================= */}
 
       <div className="forecast-ai">
         <div className="forecast-ai-icon">
@@ -1153,25 +1567,29 @@ function ForecastPage({
           <span>THERMOSHIELD AI INTERPRETATION</span>
 
           <h2>
-            Heat risk is expected to increase sharply by
-            Wednesday.
+            {getRiskInterpretation()}
           </h2>
 
           <p>
-            High temperature combined with increasing humidity
-            and low wind speed may create dangerous thermal
-            stress. Vulnerable populations and outdoor workers
-            should be prioritized.
+            Forecast conditions are evaluated using temperature,
+            humidity, wind and available thermal indicators.
+            Vulnerable populations and outdoor workers should
+            follow precautions when risk levels increase.
           </p>
         </div>
 
-        <button onClick={() => navigate("Risk Analysis")}>
+        <button
+          onClick={() => navigate("Risk Analysis")}
+        >
           View Risk Analysis
+
           <ChevronRight size={15} />
         </button>
       </div>
 
-      {/* 5 DAY TABLE */}
+      {/* =======================
+          FORECAST SUMMARY TABLE
+      ======================= */}
 
       <div className="panel forecast-table-panel">
         <PanelHeader
@@ -1193,7 +1611,7 @@ function ForecastPage({
           {forecastData.map((item) => (
             <div
               className="forecast-table-row"
-              key={item.day}
+              key={`${item.day}-${item.date}`}
             >
               <strong>{item.day}</strong>
 
@@ -1215,7 +1633,6 @@ function ForecastPage({
     </div>
   );
 }
-
 /* =========================================================
    RISK ANALYSIS
 ========================================================= */
@@ -1533,8 +1950,8 @@ function CoolingPlanPage({
     220,
     Math.round(
       42 +
-        budget * 1.55 +
-        (ward.population / 1000) * 0.8
+      budget * 1.55 +
+      (ward.population / 1000) * 0.8
     )
   );
 
@@ -1542,8 +1959,8 @@ function CoolingPlanPage({
     48,
     Math.round(
       10 +
-        budget * 0.43 +
-        riskRank[ward.risk] * 1.5
+      budget * 0.43 +
+      riskRank[ward.risk] * 1.5
     )
   );
 
@@ -1984,7 +2401,7 @@ function CoolingPlanPage({
               {Math.max(
                 24,
                 ward.wbgt -
-                  temperatureReduction * 0.72
+                temperatureReduction * 0.72
               ).toFixed(1)}
               °C
             </small>
@@ -2050,19 +2467,19 @@ function DigitalTwinPage({
     temperature >= 45
       ? "Extreme"
       : temperature >= 42
-      ? "Very High"
-      : temperature >= 39
-      ? "High"
-      : "Moderate";
+        ? "Very High"
+        : temperature >= 39
+          ? "High"
+          : "Moderate";
 
   const projectedRisk =
     projectedTemperature >= 45
       ? "Extreme"
       : projectedTemperature >= 42
-      ? "Very High"
-      : projectedTemperature >= 39
-      ? "High"
-      : "Moderate";
+        ? "Very High"
+        : projectedTemperature >= 39
+          ? "High"
+          : "Moderate";
 
   const riskReduction = Math.min(
     55,
@@ -2071,9 +2488,9 @@ function DigitalTwinPage({
 
   const peopleProtected = Math.round(
     25 +
-      trees * 0.45 +
-      coolRoofs * 0.35 +
-      greenCover * 0.25
+    trees * 0.45 +
+    coolRoofs * 0.35 +
+    greenCover * 0.25
   );
 
   const resetSimulation = () => {
